@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/expense.dart';
 import '../utils/validation.dart';
+import '../widgets/swipeable_transaction_card.dart';
 import 'edit_transaction_screen.dart';
 
-class LiabilitiesScreen extends StatelessWidget {
+class LiabilitiesScreen extends StatefulWidget {
   final List<Transaction> liabilities;
   final void Function(Transaction) onAddLiability;
 
@@ -12,6 +14,52 @@ class LiabilitiesScreen extends StatelessWidget {
     required this.liabilities,
     required this.onAddLiability,
   });
+
+  @override
+  State<LiabilitiesScreen> createState() => _LiabilitiesScreenState();
+}
+
+class _LiabilitiesScreenState extends State<LiabilitiesScreen> {
+  Future<void> _toggleLiabilityCompletion(int index) async {
+    try {
+      final box = Hive.box('liabilitiesBox');
+      final liability = widget.liabilities[index];
+
+      final updatedLiability = Transaction(
+        title: liability.title,
+        amount: liability.amount,
+        date: liability.date,
+        type: liability.type,
+        tag: liability.tag,
+        dueDate: liability.dueDate,
+        isCompleted: !liability.isCompleted,
+      );
+
+      await box.putAt(index, updatedLiability);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              updatedLiability.isCompleted
+                  ? 'Liability marked as paid!'
+                  : 'Liability marked as pending!',
+            ),
+            backgroundColor: Color(0xFF00C853),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating liability: $e'),
+            backgroundColor: Color(0xFFFF1744),
+          ),
+        );
+      }
+    }
+  }
 
   void _showAddLiabilityForm(BuildContext context) {
     showModalBottomSheet(
@@ -24,7 +72,7 @@ class LiabilitiesScreen extends StatelessWidget {
           color: Color(0xFF1A1A1C),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: _AddLiabilityForm(onAdd: onAddLiability),
+        child: _AddLiabilityForm(onAdd: widget.onAddLiability),
       ),
     );
   }
@@ -68,14 +116,14 @@ class LiabilitiesScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: liabilities.isEmpty
+              child: widget.liabilities.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      itemCount: liabilities.length,
+                      itemCount: widget.liabilities.length,
                       itemBuilder: (context, index) {
                         return _buildLiabilityCard(
                           context,
-                          liabilities[index],
+                          widget.liabilities[index],
                           index,
                         );
                       },
@@ -153,7 +201,7 @@ class LiabilitiesScreen extends StatelessWidget {
     Transaction liability,
     int index,
   ) {
-    return Container(
+    final cardChild = Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Color(0xFF1A1A1C),
@@ -304,6 +352,14 @@ class LiabilitiesScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return SwipeableTransactionCard(
+      transaction: liability,
+      index: index,
+      boxType: 'liabilities',
+      onToggleComplete: () => _toggleLiabilityCompletion(index),
+      child: cardChild,
     );
   }
 }

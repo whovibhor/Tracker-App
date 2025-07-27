@@ -148,19 +148,26 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Transaction'),
-        content: const Text(
+        backgroundColor: Color(0xFF1A1A1C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Transaction',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        content: Text(
           'Are you sure you want to delete this transaction? This action cannot be undone.',
+          style: TextStyle(color: Color(0xFF999999)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFF999999)),
+            child: Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFFFF1744)),
+            child: Text('Delete'),
           ),
         ],
       ),
@@ -193,41 +200,92 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFF0A0A0B), // Black background
       appBar: AppBar(
-        title: const Text('Edit Transaction'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        elevation: 0,
+        backgroundColor: Color(0xFF1A1A1C),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Edit Transaction',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete),
+            icon: Icon(Icons.delete_outline, color: Color(0xFFFF1744)),
             onPressed: _deleteTransaction,
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.all(16),
+            children: [
+              // Transaction Details Card
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(0xFF1A1A1C),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Color(0xFF333333), width: 1),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Transaction Details',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.edit_outlined,
+                          color: Color(0xFF00C853),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Transaction Details',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 20),
+
+                    // Title Field
                     TextFormField(
                       controller: _titleController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
                         labelText: 'Title',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.title),
+                        labelStyle: TextStyle(color: Color(0xFF999999)),
+                        filled: true,
+                        fillColor: Color(0xFF0A0A0B),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF00C853)),
+                        ),
+                        prefixIcon: Icon(Icons.title, color: Color(0xFF999999)),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -239,13 +297,37 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
+
+                    // Amount Field
                     TextFormField(
                       controller: _amountController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
                         labelText: 'Amount',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.currency_rupee),
+                        labelStyle: TextStyle(color: Color(0xFF999999)),
+                        filled: true,
+                        fillColor: Color(0xFF0A0A0B),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF00C853)),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.currency_rupee,
+                          color: Color(0xFF999999),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
@@ -258,16 +340,47 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
+
+                    // Category Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedTag,
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: Colors.white),
+                      dropdownColor: Color(0xFF1A1A1C),
+                      decoration: InputDecoration(
                         labelText: 'Category',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.category),
+                        labelStyle: TextStyle(color: Color(0xFF999999)),
+                        filled: true,
+                        fillColor: Color(0xFF0A0A0B),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF333333)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Color(0xFF00C853)),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.category,
+                          color: Color(0xFF999999),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                       items: _availableTags.map((tag) {
-                        return DropdownMenuItem(value: tag, child: Text(tag));
+                        return DropdownMenuItem(
+                          value: tag,
+                          child: Text(
+                            tag,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
@@ -284,36 +397,58 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              SizedBox(height: 16),
+
+              // Dates Card
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(0xFF1A1A1C),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Color(0xFF333333), width: 1),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Dates',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.date_range_outlined,
+                          color: Color(0xFF00C853),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Dates',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      leading: const Icon(Icons.date_range),
-                      title: const Text('Transaction Date'),
-                      subtitle: Text(
-                        '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios),
+                    SizedBox(height: 16),
+
+                    // Transaction Date
+                    InkWell(
                       onTap: () async {
                         final date = await showDatePicker(
                           context: context,
                           initialDate: _selectedDate,
                           firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ),
+                          lastDate: DateTime.now().add(Duration(days: 365)),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: ColorScheme.dark(
+                                  primary: Color(0xFF00C853),
+                                  surface: Color(0xFF1A1A1C),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
                         );
                         if (date != null) {
                           setState(() {
@@ -321,36 +456,73 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                           });
                         }
                       },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF0A0A0B),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Color(0xFF333333)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.date_range, color: Color(0xFF999999)),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Transaction Date',
+                                    style: TextStyle(
+                                      color: Color(0xFF999999),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.edit,
+                              color: Color(0xFF00C853),
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+
+                    // Due Date (if applicable)
                     if (widget.boxType == 'liabilities' ||
                         _selectedTag == 'Loan') ...[
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(Icons.event),
-                        title: const Text('Due Date'),
-                        subtitle: Text(
-                          _selectedDueDate != null
-                              ? '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}'
-                              : 'Not set',
-                        ),
-                        trailing: _selectedDueDate != null
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedDueDate = null;
-                                  });
-                                },
-                              )
-                            : const Icon(Icons.arrow_forward_ios),
+                      SizedBox(height: 16),
+                      InkWell(
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
                             initialDate: _selectedDueDate ?? DateTime.now(),
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(
-                              const Duration(days: 3650),
-                            ),
+                            lastDate: DateTime.now().add(Duration(days: 3650)),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.dark(
+                                    primary: Color(0xFF00C853),
+                                    surface: Color(0xFF1A1A1C),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
                           if (date != null) {
                             setState(() {
@@ -358,60 +530,188 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                             });
                           }
                         },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF0A0A0B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Color(0xFF333333)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.event, color: Color(0xFF999999)),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Due Date',
+                                      style: TextStyle(
+                                        color: Color(0xFF999999),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      _selectedDueDate != null
+                                          ? '${_selectedDueDate!.day}/${_selectedDueDate!.month}/${_selectedDueDate!.year}'
+                                          : 'Not set',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_selectedDueDate != null)
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedDueDate = null;
+                                    });
+                                  },
+                                  child: Icon(
+                                    Icons.clear,
+                                    color: Color(0xFFFF1744),
+                                    size: 18,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  Icons.edit,
+                                  color: Color(0xFF00C853),
+                                  size: 18,
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              SizedBox(height: 16),
+
+              // Status Card
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(0xFF1A1A1C),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Color(0xFF333333), width: 1),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Status',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.task_alt_outlined,
+                          color: Color(0xFF00C853),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Status',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                    SwitchListTile(
-                      title: const Text('Completed'),
-                      subtitle: Text(
-                        _isCompleted
-                            ? 'This transaction has been settled'
-                            : 'This transaction is pending',
+                    SizedBox(height: 16),
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF0A0A0B),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Color(0xFF333333)),
                       ),
-                      value: _isCompleted,
-                      onChanged: (value) {
-                        setState(() {
-                          _isCompleted = value;
-                        });
-                      },
+                      child: Row(
+                        children: [
+                          Icon(
+                            _isCompleted ? Icons.check_circle : Icons.schedule,
+                            color: _isCompleted
+                                ? Color(0xFF00C853)
+                                : Color(0xFF999999),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Completed',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  _isCompleted
+                                      ? 'This transaction has been settled'
+                                      : 'This transaction is pending',
+                                  style: TextStyle(
+                                    color: Color(0xFF999999),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _isCompleted,
+                            onChanged: (value) {
+                              setState(() {
+                                _isCompleted = value;
+                              });
+                            },
+                            activeColor: Color(0xFF00C853),
+                            activeTrackColor: Color(
+                              0xFF00C853,
+                            ).withValues(alpha: 0.3),
+                            inactiveThumbColor: Color(0xFF666666),
+                            inactiveTrackColor: Color(0xFF333333),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _updateTransaction,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              SizedBox(height: 24),
+
+              // Update Button
+              Container(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _updateTransaction,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF00C853),
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Update Transaction',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-              child: const Text(
-                'Update Transaction',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+              SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

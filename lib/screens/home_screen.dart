@@ -26,22 +26,12 @@ class _HomeScreenState extends State<HomeScreen> {
   late Box liabilitiesBox;
   late Box userBox;
   bool _hiveInitialized = false;
-  late PageController _pageController;
   User? _currentUser;
 
   @override
   void initState() {
     super.initState();
     _initHive();
-    // Start with a high initial page to allow circular scrolling in both directions
-    // Page 1000 corresponds to Dashboard (middle of 3 screens: 1000 % 3 = 1)
-    _pageController = PageController(initialPage: 1000);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   Future<void> _initHive() async {
@@ -181,36 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
-
-    // Handle Account screen separately (no PageView navigation)
-    if (index == 3) {
-      return; // Just update the state, Account screen is shown directly
-    }
-
-    // For circular navigation, calculate the target page based on current position
-    final currentPage = _pageController.page?.round() ?? 1000;
-    final currentScreenIndex = currentPage % 3;
-
-    // Map logical indices to screen indices for circular navigation
-    int targetScreenIndex;
-    if (index == 0) {
-      targetScreenIndex = 0; // Liabilities
-    } else if (index == 2) {
-      targetScreenIndex = 1; // Dashboard
-    } else if (index == 1) {
-      targetScreenIndex = 2; // Assets
-    } else {
-      return;
-    }
-
-    // Calculate the closest page to navigate to
-    int targetPage = currentPage - currentScreenIndex + targetScreenIndex;
-
-    _pageController.animateToPage(
-      targetPage,
-      duration: Duration(milliseconds: 350),
-      curve: Curves.easeInOut,
-    );
   }
 
   Widget _buildDrawerItem({
@@ -520,48 +480,44 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    return PageView.builder(
-      controller: _pageController,
-      onPageChanged: (index) {
-        setState(() {
-          // Circular navigation with 3 screens (Liabilities, Dashboard, Assets)
-          // Map any index to the corresponding screen using modulo
-          final screenIndex = index % 3;
-          if (screenIndex == 0) {
-            _selectedIndex = 0; // Liabilities
-          } else if (screenIndex == 1) {
-            _selectedIndex = 2; // Dashboard
-          } else if (screenIndex == 2) {
-            _selectedIndex = 1; // Assets
-          }
-        });
-      },
-      itemBuilder: (context, index) {
-        // Create infinite scrolling by repeating the 3 screens
-        final screenIndex = index % 3;
-
-        if (screenIndex == 0) {
+    Widget _getCurrentScreen() {
+      switch (_selectedIndex) {
+        case 0:
           return LiabilitiesScreen(
             liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
             onAddLiability: _addLiability,
           );
-        } else if (screenIndex == 1) {
-          return DashboardScreen(
-            assets: assetsBox.values.cast<Transaction>().toList(),
-            liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
-            onToggleCompleted: _toggleCompleted,
-            onNavigateToAssets: () => _onNavTap(1), // Navigate to Assets
-            onNavigateToLiabilities: () =>
-                _onNavTap(0), // Navigate to Liabilities
-          );
-        } else {
+        case 1:
           return AssetsScreen(
             assets: assetsBox.values.cast<Transaction>().toList(),
             onAddAsset: _addAsset,
           );
-        }
-      },
-    );
+        case 2:
+          return DashboardScreen(
+            assets: assetsBox.values.cast<Transaction>().toList(),
+            liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
+            onToggleCompleted: _toggleCompleted,
+            onNavigateToAssets: () => _onNavTap(1),
+            onNavigateToLiabilities: () => _onNavTap(0),
+          );
+        case 3:
+          return ProfileScreen(
+            user: _currentUser!,
+            onUserUpdated: _updateUser,
+            onLogout: _logout,
+          );
+        default:
+          return DashboardScreen(
+            assets: assetsBox.values.cast<Transaction>().toList(),
+            liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
+            onToggleCompleted: _toggleCompleted,
+            onNavigateToAssets: () => _onNavTap(1),
+            onNavigateToLiabilities: () => _onNavTap(0),
+          );
+      }
+    }
+
+    return _getCurrentScreen();
   }
 
   @override

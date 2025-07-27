@@ -94,22 +94,30 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF0A0A0B), // Deep black background
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Net Worth Card
-            _buildNetWorthCard(),
-            SizedBox(height: 24),
+      body: SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16.0,
+            16.0,
+            16.0,
+            100.0,
+          ), // Added bottom padding for floating nav
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Net Worth Card - Reduced size
+              _buildNetWorthCard(),
+              SizedBox(height: 20),
 
-            // Incoming Bills Section
-            _buildIncomingBillsSection(),
-            SizedBox(height: 24),
+              // Incoming Bills Section
+              _buildIncomingBillsSection(),
+              SizedBox(height: 20),
 
-            // Incoming Credits Section
-            _buildIncomingCreditsSection(),
-          ],
+              // Incoming Credits Section
+              _buildIncomingCreditsSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -117,10 +125,10 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildNetWorthCard() {
     return Container(
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(20), // Reduced from 24
       decoration: BoxDecoration(
         color: Color(0xFF1A1A1C),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16), // Slightly reduced from 20
         border: Border.all(
           color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
           width: 1,
@@ -130,13 +138,13 @@ class DashboardScreen extends StatelessWidget {
           BoxShadow(
             color: (_netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
                 .withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            blurRadius: 16, // Reduced from 20
+            offset: Offset(0, 6), // Reduced from 8
           ),
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 8, // Reduced from 10
+            offset: Offset(0, 3), // Reduced from 4
           ),
         ],
       ),
@@ -150,21 +158,21 @@ class DashboardScreen extends StatelessWidget {
                   color:
                       (_netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
                           .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10), // Reduced from 12
                 ),
                 child: Icon(
                   _netWorth >= 0
                       ? Icons.trending_up_rounded
                       : Icons.trending_down_rounded,
                   color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
-                  size: 24,
+                  size: 20, // Reduced from 24
                 ),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 10), // Reduced from 12
               Text(
                 'Net Worth',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16, // Reduced from 18
                   fontWeight: FontWeight.w400,
                   color: Colors.white70,
                   letterSpacing: 0.5,
@@ -172,18 +180,18 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 12), // Reduced from 16
           Text(
             (_netWorth >= 0 ? '+ ₹' : '- ₹') +
                 _netWorth.abs().toStringAsFixed(2),
             style: TextStyle(
-              fontSize: 36,
+              fontSize: 28, // Reduced from 36
               fontWeight: FontWeight.w300,
               color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
               letterSpacing: 1.0,
             ),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 16), // Reduced from 20
           Container(
             height: 1,
             decoration: BoxDecoration(
@@ -196,7 +204,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 16), // Reduced from 20
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -208,7 +216,7 @@ class DashboardScreen extends StatelessWidget {
               ),
               Container(
                 width: 1,
-                height: 40,
+                height: 32, // Reduced from 40
                 color: Colors.white.withValues(alpha: 0.1),
               ),
               _buildSummaryItem(
@@ -233,27 +241,27 @@ class DashboardScreen extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.all(8),
+          padding: EdgeInsets.all(6), // Reduced from 8
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8), // Reduced from 10
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: 18), // Reduced from 20
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 6), // Reduced from 8
         Text(
           count.toString(),
           style: TextStyle(
-            fontSize: 22,
+            fontSize: 18, // Reduced from 22
             fontWeight: FontWeight.w600,
             color: color,
           ),
         ),
-        SizedBox(height: 4),
+        SizedBox(height: 2), // Reduced from 4
         Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 11, // Reduced from 13
             color: Colors.white54,
             fontWeight: FontWeight.w400,
           ),

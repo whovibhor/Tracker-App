@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/expense.dart';
 import '../utils/validation.dart';
+import '../widgets/swipeable_transaction_card.dart';
 import 'edit_transaction_screen.dart';
 
-class AssetsScreen extends StatelessWidget {
+class AssetsScreen extends StatefulWidget {
   final List<Transaction> assets;
   final void Function(Transaction) onAddAsset;
 
@@ -12,6 +14,52 @@ class AssetsScreen extends StatelessWidget {
     required this.assets,
     required this.onAddAsset,
   }) : super();
+
+  @override
+  State<AssetsScreen> createState() => _AssetsScreenState();
+}
+
+class _AssetsScreenState extends State<AssetsScreen> {
+  Future<void> _toggleAssetCompletion(int index) async {
+    try {
+      final box = Hive.box('assetsBox');
+      final asset = widget.assets[index];
+
+      final updatedAsset = Transaction(
+        title: asset.title,
+        amount: asset.amount,
+        date: asset.date,
+        type: asset.type,
+        tag: asset.tag,
+        dueDate: asset.dueDate,
+        isCompleted: !asset.isCompleted,
+      );
+
+      await box.putAt(index, updatedAsset);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              updatedAsset.isCompleted
+                  ? 'Asset marked as received!'
+                  : 'Asset marked as pending!',
+            ),
+            backgroundColor: Color(0xFF00C853),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating asset: $e'),
+            backgroundColor: Color(0xFFFF1744),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +99,12 @@ class AssetsScreen extends StatelessWidget {
             ),
             SizedBox(height: 24),
             Expanded(
-              child: assets.isEmpty
+              child: widget.assets.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      itemCount: assets.length,
+                      itemCount: widget.assets.length,
                       itemBuilder: (context, index) {
-                        final asset = assets[index];
+                        final asset = widget.assets[index];
                         return _buildAssetCard(context, asset, index);
                       },
                     ),
@@ -131,7 +179,7 @@ class AssetsScreen extends StatelessWidget {
   }
 
   Widget _buildAssetCard(BuildContext context, Transaction asset, int index) {
-    return Container(
+    final cardChild = Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Color(0xFF1A1A1C),
@@ -264,6 +312,14 @@ class AssetsScreen extends StatelessWidget {
         ),
       ),
     );
+
+    return SwipeableTransactionCard(
+      transaction: asset,
+      index: index,
+      boxType: 'assets',
+      onToggleComplete: () => _toggleAssetCompletion(index),
+      child: cardChild,
+    );
   }
 
   void _showAddAssetForm(BuildContext context) {
@@ -277,7 +333,7 @@ class AssetsScreen extends StatelessWidget {
           color: Color(0xFF1A1A1C),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: _AddAssetForm(onAdd: onAddAsset),
+        child: _AddAssetForm(onAdd: widget.onAddAsset),
       ),
     );
   }
