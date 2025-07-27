@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../models/expense.dart';
-import '../utils/data_migration.dart';
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -40,16 +37,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _initializeApp() async {
     try {
-      // Register Hive adapters
-      Hive.registerAdapter(TransactionTypeAdapter());
-      Hive.registerAdapter(TransactionAdapter());
-
-      // Open Hive boxes
-      await Hive.openBox('assetsBox');
-      await Hive.openBox('liabilitiesBox');
+      // Note: Hive adapters and boxes are already registered/opened in main.dart
 
       // Migrate existing data if needed
-      await DataMigration.migrateData();
+      // await DataMigration.migrateData(); // Temporarily disabled
 
       // Simulate loading time for better UX
       await Future.delayed(Duration(seconds: 1));

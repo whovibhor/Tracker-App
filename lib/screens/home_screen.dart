@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/expense.dart';
+import '../models/user.dart';
 import 'assets_screen.dart';
 import 'liabilities_screen.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
+import 'auth_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,8 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 2; // 0: Liabilities, 1: Assets, 2: Dashboard, 3: Account
   late Box assetsBox;
   late Box liabilitiesBox;
+  late Box userBox;
   bool _hiveInitialized = false;
   late PageController _pageController;
+  User? _currentUser;
 
   @override
   void initState() {
@@ -28,9 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _initHive();
     // Start with a high initial page to allow circular scrolling in both directions
     // Page 1000 corresponds to Dashboard (middle of 3 screens: 1000 % 3 = 1)
-    _pageController = PageController(
-      initialPage: 1000,
-    );
+    _pageController = PageController(initialPage: 1000);
   }
 
   @override
@@ -43,6 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       assetsBox = Hive.box('assetsBox');
       liabilitiesBox = Hive.box('liabilitiesBox');
+      userBox = Hive.box('userBox');
+
+      // Load current user
+      if (userBox.isNotEmpty) {
+        _currentUser = userBox.getAt(0) as User?;
+      }
+
       setState(() {
         _hiveInitialized = true;
       });
@@ -54,6 +64,13 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         assetsBox = await Hive.openBox('assetsBox');
         liabilitiesBox = await Hive.openBox('liabilitiesBox');
+        userBox = await Hive.openBox('userBox');
+
+        // Load current user
+        if (userBox.isNotEmpty) {
+          _currentUser = userBox.getAt(0) as User?;
+        }
+
         setState(() {
           _hiveInitialized = true;
         });
@@ -114,6 +131,50 @@ class _HomeScreenState extends State<HomeScreen> {
     return assets - liabilities;
   }
 
+  void _saveUser(User user) {
+    userBox.clear();
+    userBox.add(user);
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  void _updateUser(User user) {
+    userBox.putAt(0, user);
+    setState(() {
+      _currentUser = user;
+    });
+  }
+
+  void _logout() {
+    userBox.clear();
+    setState(() {
+      _currentUser = null;
+    });
+  }
+
+  void _showAuthScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AuthScreen(onUserCreated: _saveUser),
+      ),
+    );
+  }
+
+  void _showProfileScreen() {
+    if (_currentUser != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ProfileScreen(
+            user: _currentUser!,
+            onUserUpdated: _updateUser,
+            onLogout: _logout,
+          ),
+        ),
+      );
+    }
+  }
+
   void _onNavTap(int index) {
     setState(() {
       _selectedIndex = index;
@@ -127,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // For circular navigation, calculate the target page based on current position
     final currentPage = _pageController.page?.round() ?? 1000;
     final currentScreenIndex = currentPage % 3;
-    
+
     // Map logical indices to screen indices for circular navigation
     int targetScreenIndex;
     if (index == 0) {
@@ -142,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Calculate the closest page to navigate to
     int targetPage = currentPage - currentScreenIndex + targetScreenIndex;
-    
+
     _pageController.animateToPage(
       targetPage,
       duration: Duration(milliseconds: 350),
@@ -172,10 +233,21 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       centerTitle: true,
       actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.black),
-          onPressed: () => _onNavTap(3),
-        ),
+        _currentUser != null
+            ? IconButton(
+                icon: Icon(Icons.account_circle, color: Colors.black),
+                onPressed: _showProfileScreen,
+              )
+            : TextButton(
+                onPressed: _showAuthScreen,
+                child: Text(
+                  'Login',
+                  style: TextStyle(
+                    color: Color(0xFF1976D2),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
       ],
     );
   }
@@ -286,9 +358,59 @@ class _HomeScreenState extends State<HomeScreen> {
       return Center(child: CircularProgressIndicator());
     }
 
-    // If Account screen is selected, show it directly
+    // If Account screen is selected, show appropriate content
     if (_selectedIndex == 3) {
-      return Center(child: Text('Account Screen'));
+      if (_currentUser != null) {
+        return ProfileScreen(
+          user: _currentUser!,
+          onUserUpdated: _updateUser,
+          onLogout: _logout,
+        );
+      } else {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.account_circle, size: 80, color: Color(0xFF8A8D9F)),
+                SizedBox(height: 24),
+                Text(
+                  'Sign up to save your progress',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3A3D5C),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Create an account to securely save your financial data and access it from anywhere.',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF8A8D9F)),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _showAuthScreen,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF1976D2),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Sign Up / Login',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
 
     return PageView.builder(
@@ -310,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         // Create infinite scrolling by repeating the 3 screens
         final screenIndex = index % 3;
-        
+
         if (screenIndex == 0) {
           return LiabilitiesScreen(
             liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
