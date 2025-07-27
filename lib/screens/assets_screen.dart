@@ -16,6 +16,8 @@ class AssetsScreen extends StatelessWidget {
   void _showAddAssetForm(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      enableDrag: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -228,150 +230,164 @@ class _AddAssetFormState extends State<_AddAssetForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _selectedTag == 'Loan' ? 'Add Incoming Credit' : 'Add Asset',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.title),
-              ),
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Enter a title' : null,
-              onSaved: (value) => _title = value!,
-            ),
-            SizedBox(height: 12),
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.attach_money),
-              ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Enter an amount';
-                final n = double.tryParse(value);
-                if (n == null || n <= 0) return 'Enter a valid amount';
-                return null;
-              },
-              onSaved: (value) => _amount = double.parse(value!),
-            ),
-            SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.category),
-              ),
-              value: _selectedTag,
-              items: _assetTags.map((tag) {
-                return DropdownMenuItem(value: tag, child: Text(tag));
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedTag = value!;
-                  // Reset due date when changing from/to loan
-                  if (_selectedTag != 'Loan') {
-                    _dueDate = null;
-                  }
-                });
-              },
-            ),
-            if (_selectedTag == 'Loan')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Note: Loans will be treated as liabilities (money you owe)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.orange[700],
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            SizedBox(height: 12),
-            Row(
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 24.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
-                  ),
+                Text(
+                  _selectedTag == 'Loan' ? 'Add Incoming Credit' : 'Add Asset',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                    }
+                SizedBox(height: 16),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.title),
+                  ),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Enter a title' : null,
+                  onSaved: (value) => _title = value!,
+                ),
+                SizedBox(height: 12),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Enter an amount';
+                    final n = double.tryParse(value);
+                    if (n == null || n <= 0) return 'Enter a valid amount';
+                    return null;
                   },
-                  child: Text('Select Date'),
+                  onSaved: (value) => _amount = double.parse(value!),
+                ),
+                SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  value: _selectedTag,
+                  items: _assetTags.map((tag) {
+                    return DropdownMenuItem(value: tag, child: Text(tag));
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedTag = value!;
+                      // Reset due date when changing from/to loan
+                      if (_selectedTag != 'Loan') {
+                        _dueDate = null;
+                      }
+                    });
+                  },
+                ),
+                if (_selectedTag == 'Loan')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      'Note: Loans will be treated as liabilities (money you owe)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() => _selectedDate = picked);
+                        }
+                      },
+                      child: Text('Select Date'),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+                // Only show due date for Loan tag (incoming credit)
+                if (_selectedTag == 'Loan') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Repayment Due: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate:
+                                _dueDate ??
+                                DateTime.now().add(Duration(days: 30)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() => _dueDate = picked);
+                          }
+                        },
+                        child: Text('Select Due Date'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                ],
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF1976D2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: _submit,
+                  child: Text('Add Asset', style: TextStyle(fontSize: 16)),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            // Only show due date for Loan tag (incoming credit)
-            if (_selectedTag == 'Loan') ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Repayment Due: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate:
-                            _dueDate ?? DateTime.now().add(Duration(days: 30)),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() => _dueDate = picked);
-                      }
-                    },
-                    child: Text('Select Due Date'),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12),
-            ],
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF1976D2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              ),
-              onPressed: _submit,
-              child: Text('Add Asset', style: TextStyle(fontSize: 16)),
-            ),
-          ],
+          ),
         ),
       ),
     );

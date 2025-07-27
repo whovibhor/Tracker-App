@@ -16,6 +16,8 @@ class LiabilitiesScreen extends StatelessWidget {
   void _showAddLiabilityForm(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      enableDrag: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -230,104 +232,117 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Add Liability',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.title),
-              ),
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Enter a title' : null,
-              onSaved: (value) => _title = value!,
-            ),
-            SizedBox(height: 12),
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.money_off),
-              ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              validator: (value) {
-                if (value == null || value.isEmpty) return 'Enter an amount';
-                final n = double.tryParse(value);
-                if (n == null || n <= 0) return 'Enter a valid amount';
-                return null;
-              },
-              onSaved: (value) => _amount = double.parse(value!),
-            ),
-            SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: Icon(Icons.category),
-              ),
-              value: _selectedTag,
-              items: _liabilityTags.map((tag) {
-                return DropdownMenuItem(value: tag, child: Text(tag));
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedTag = value!;
-                });
-              },
-            ),
-            SizedBox(height: 12),
-            Row(
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 24.0,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    'Payment Due: ${_selectedDate.toLocal().toString().split(' ')[0]}',
-                  ),
+                Text(
+                  'Add Liability',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                TextButton(
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                    }
+                SizedBox(height: 16),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.title),
+                  ),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Enter a title' : null,
+                  onSaved: (value) => _title = value!,
+                ),
+                SizedBox(height: 12),
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.money_off),
+                  ),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Enter an amount';
+                    final n = double.tryParse(value);
+                    if (n == null || n <= 0) return 'Enter a valid amount';
+                    return null;
                   },
-                  child: Text('Select Payment Date'),
+                  onSaved: (value) => _amount = double.parse(value!),
+                ),
+                SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  value: _selectedTag,
+                  items: _liabilityTags.map((tag) {
+                    return DropdownMenuItem(value: tag, child: Text(tag));
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedTag = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Payment Due: ${_selectedDate.toLocal().toString().split(' ')[0]}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() => _selectedDate = picked);
+                        }
+                      },
+                      child: Text('Select Payment Date'),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFD32F2F),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  onPressed: _submit,
+                  child: Text('Add Liability', style: TextStyle(fontSize: 16)),
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFD32F2F),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              ),
-              onPressed: _submit,
-              child: Text('Add Liability', style: TextStyle(fontSize: 16)),
-            ),
-          ],
+          ),
         ),
       ),
     );

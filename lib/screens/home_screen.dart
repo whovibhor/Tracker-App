@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:io';
 import '../models/expense.dart';
 import '../models/user.dart';
 import 'assets_screen.dart';
@@ -115,6 +116,43 @@ class _HomeScreenState extends State<HomeScreen> {
       box.putAt(index, updatedTransaction);
       setState(() {});
     }
+  }
+
+  // Calculate net worth (assets - liabilities)
+  double _calculateNetWorth() {
+    if (!_hiveInitialized) return 0.0;
+
+    double totalAssets = 0.0;
+    double totalLiabilities = 0.0;
+
+    try {
+      // Calculate total assets
+      for (int i = 0; i < assetsBox.length; i++) {
+        final asset = assetsBox.getAt(i) as Transaction?;
+        if (asset != null && asset.type == TransactionType.asset) {
+          totalAssets += asset.amount;
+        }
+      }
+
+      // Calculate total liabilities
+      for (int i = 0; i < liabilitiesBox.length; i++) {
+        final liability = liabilitiesBox.getAt(i) as Transaction?;
+        if (liability != null) {
+          totalLiabilities += liability.amount;
+        }
+      }
+
+      return totalAssets - totalLiabilities;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error calculating net worth: $e');
+      }
+      return 0.0;
+    }
+  }
+
+  String _formatCurrency(double amount) {
+    return '\$${amount.toStringAsFixed(2)}';
   }
 
   double get _netAmount {
@@ -461,12 +499,158 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
-                'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
+            // Enhanced drawer header with user profile
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                ),
               ),
+              child: _currentUser != null
+                  ? Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 20),
+                          // Profile picture
+                          Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                            child: _currentUser!.profilePicturePath != null
+                                ? ClipOval(
+                                    child: Image.file(
+                                      File(_currentUser!.profilePicturePath!),
+                                      fit: BoxFit.cover,
+                                      width: 70,
+                                      height: 70,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.person,
+                                              size: 40,
+                                              color: Colors.white,
+                                            );
+                                          },
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.person,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                          SizedBox(height: 12),
+                          // User name
+                          Text(
+                            _currentUser!.name,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 4),
+                          // Net worth
+                          Text(
+                            'Net Worth: ${_formatCurrency(_calculateNetWorth())}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          // View profile button
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _onNavTap(3); // Navigate to profile
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Text(
+                                'View Profile',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 40),
+                          Icon(
+                            Icons.account_circle,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Welcome to FINLY',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _showAuthScreen();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
             ListTile(
               leading: Icon(Icons.dashboard),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../models/user.dart';
+import '../utils/validation.dart';
 
 class AuthScreen extends StatefulWidget {
   final Function(User) onUserCreated;
@@ -23,6 +23,12 @@ class _AuthScreenState extends State<AuthScreen> {
   File? _profileImage;
   bool _isLoading = false;
 
+  // Rate limiting for security
+  DateTime? _lastSubmissionTime;
+  int _submissionAttempts = 0;
+  static const int _maxAttempts = 5;
+  static const Duration _cooldownDuration = Duration(minutes: 1);
+
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
@@ -35,34 +41,73 @@ class _AuthScreenState extends State<AuthScreen> {
       );
 
       if (image != null) {
+        // Validate file size (max 5MB)
+        final file = File(image.path);
+        final fileSize = await file.length();
+        const maxFileSize = 5 * 1024 * 1024; // 5MB
+
+        if (fileSize > maxFileSize) {
+          throw Exception(
+            'Image size too large. Please select an image smaller than 5MB.',
+          );
+        }
+
+        // Validate file extension
+        final allowedExtensions = ['.jpg', '.jpeg', '.png'];
+        final extension = image.path.toLowerCase().split('.').last;
+        if (!allowedExtensions.contains('.$extension')) {
+          throw Exception(
+            'Invalid file type. Please select a JPG or PNG image.',
+          );
+        }
+
         setState(() {
-          _profileImage = File(image.path);
+          _profileImage = file;
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
-      }
+      ValidationUtils.logSecurityEvent('Image picker error', e.toString());
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Rate limiting check
+    if (_checkRateLimit()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Too many attempts. Please wait before trying again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
+      _submissionAttempts++;
+      _lastSubmissionTime = DateTime.now();
+
       if (_isSignUp) {
-        // Create new user
-        final user = User(
+        // Validate email format before creating user
+        final emailToValidate = _emailController.text.trim();
+        if (!_isValidEmail(emailToValidate)) {
+          throw Exception('Invalid email format');
+        }
+
+        // Create new user with sanitized inputs
+        final user = User.createSanitized(
           name: _nameController.text.trim(),
           age: int.parse(_ageController.text.trim()),
           occupation: _occupationController.text.trim(),
-          email: _emailController.text.trim(),
+          email: emailToValidate,
           profilePicturePath: _profileImage?.path,
           createdAt: DateTime.now(),
           isLoggedIn: true,
@@ -78,14 +123,20 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       } else {
         // Login logic (for now just simulate)
+        final emailToValidate = _emailController.text.trim();
+
+        if (!_isValidEmail(emailToValidate)) {
+          throw Exception('Invalid email format');
+        }
+
         await Future.delayed(Duration(milliseconds: 500));
 
         // For demo purposes, create a dummy user for login
-        final user = User(
+        final user = User.createSanitized(
           name: "Demo User",
           age: 25,
           occupation: "Professional",
-          email: _emailController.text.trim(),
+          email: emailToValidate,
           createdAt: DateTime.now(),
           isLoggedIn: true,
         );
@@ -97,8 +148,14 @@ class _AuthScreenState extends State<AuthScreen> {
         ).showSnackBar(SnackBar(content: Text('Logged in successfully!')));
       }
 
+      // Reset attempts on success
+      _submissionAttempts = 0;
       Navigator.of(context).pop();
     } catch (e) {
+      ValidationUtils.logSecurityEvent(
+        'Auth form submission error',
+        e.toString(),
+      );
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -107,6 +164,27 @@ class _AuthScreenState extends State<AuthScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  bool _checkRateLimit() {
+    if (_submissionAttempts >= _maxAttempts) {
+      if (_lastSubmissionTime != null) {
+        final timeSinceLastAttempt = DateTime.now().difference(
+          _lastSubmissionTime!,
+        );
+        if (timeSinceLastAttempt < _cooldownDuration) {
+          return true; // Rate limited
+        } else {
+          // Reset after cooldown
+          _submissionAttempts = 0;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   void _signInWithGoogle() {
@@ -173,26 +251,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       child: _profileImage != null
                           ? ClipOval(
-                              child: kIsWeb 
-                                ? Image.network(
-                                    _profileImage!.path,
-                                    fit: BoxFit.cover,
-                                    width: 100,
-                                    height: 100,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.person,
-                                        size: 40,
-                                        color: Color(0xFF1976D2),
-                                      );
-                                    },
-                                  )
-                                : Image.file(
-                                    _profileImage!,
-                                    fit: BoxFit.cover,
-                                    width: 100,
-                                    height: 100,
-                                  ),
+                              child: Image.file(
+                                _profileImage!,
+                                fit: BoxFit.cover,
+                                width: 100,
+                                height: 100,
+                              ),
                             )
                           : Icon(
                               Icons.camera_alt,

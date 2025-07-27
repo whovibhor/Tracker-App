@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -56,11 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
-      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
@@ -118,21 +115,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: imagePath != null
                 ? ClipOval(
-                    child: kIsWeb
-                        ? Image.network(
-                            imagePath,
-                            fit: BoxFit.cover,
-                            width: 120,
-                            height: 120,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Icon(Icons.person, size: 60, color: Color(0xFF1976D2)),
-                          )
-                        : Image.file(
-                            File(imagePath),
-                            fit: BoxFit.cover,
-                            width: 120,
-                            height: 120,
-                          ),
+                    child: Image.file(
+                      File(imagePath),
+                      fit: BoxFit.cover,
+                      width: 120,
+                      height: 120,
+                    ),
                   )
                 : Icon(Icons.person, size: 60, color: Color(0xFF1976D2)),
           ),
@@ -183,49 +171,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(height: 10),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: 20),
 
-                // Profile Picture
-                _buildProfileImage(),
+              // Profile Picture
+              _buildProfileImage(),
 
-                SizedBox(height: 24),
+              SizedBox(height: 32),
 
-                // User Info Card
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 3,
-                  shadowColor: Colors.black12,
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.person_outline, color: Color(0xFF1976D2)),
-                            SizedBox(width: 8),
-                            Text(
-                              'Personal Information',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF3A3D5C),
-                              ),
-                            ),
-                          ],
+              // User Info Card
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 2,
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Personal Information',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3A3D5C),
                         ),
+                      ),
 
-                        SizedBox(height: 20),
+                      SizedBox(height: 20),
 
                       // Name Field
                       _buildInfoField(
@@ -305,26 +285,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                elevation: 3,
-                shadowColor: Colors.black12,
+                elevation: 2,
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.account_circle_outlined, color: Color(0xFF1976D2)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Account Information',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3A3D5C),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'Account Information',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3A3D5C),
+                        ),
                       ),
 
                       SizedBox(height: 16),
@@ -348,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              SizedBox(height: 24),
+              SizedBox(height: 32),
 
               // Logout Button
               OutlinedButton.icon(
@@ -385,8 +358,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   side: BorderSide(color: Colors.red),
                 ),
               ),
-
-              SizedBox(height: 20),
             ],
           ),
         ),

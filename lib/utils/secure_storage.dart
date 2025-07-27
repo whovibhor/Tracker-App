@@ -5,6 +5,7 @@ import '../models/expense.dart';
 class SecureStorageService {
   static const String _assetsBoxName = 'assetsBox';
   static const String _liabilitiesBoxName = 'liabilitiesBox';
+  static const String _userBoxName = 'userBox';
 
   // Secure box opening with error handling
   static Future<Box?> openSecureBox(String boxName) async {
@@ -28,10 +29,12 @@ class SecureStorageService {
 
   // Validate box names to prevent directory traversal
   static bool _isValidBoxName(String boxName) {
-    final validNames = [_assetsBoxName, _liabilitiesBoxName];
+    final validNames = [_assetsBoxName, _liabilitiesBoxName, _userBoxName];
     return validNames.contains(boxName) &&
         !boxName.contains('../') &&
         !boxName.contains('..\\') &&
+        !boxName.contains('/') &&
+        !boxName.contains('\\') &&
         boxName.isNotEmpty;
   }
 
