@@ -110,8 +110,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.grey[200],
-              border: Border.all(color: Color(0xFF1976D2), width: 3),
+              color: Color(0xFF1A1A1C),
+              border: Border.all(color: Color(0xFF00C853), width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF00C853).withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: Offset(0, 6),
+                ),
+              ],
             ),
             child: imagePath != null
                 ? ClipOval(
@@ -122,7 +129,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 120,
                     ),
                   )
-                : Icon(Icons.person, size: 60, color: Color(0xFF1976D2)),
+                : Icon(
+                    Icons.person_rounded,
+                    size: 60,
+                    color: Color(0xFF00C853),
+                  ),
           ),
           if (_isEditing)
             Positioned(
@@ -133,11 +144,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFF00C853),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: Color(0xFF0A0A0B), width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                  child: Icon(
+                    Icons.camera_alt_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -149,16 +171,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF6F8FB),
+      backgroundColor: Color(0xFF0A0A0B),
       appBar: AppBar(
-        title: Text('Profile'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
+        title: Text(
+          'Profile',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Color(0xFF0A0A0B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: Icon(Icons.edit),
+              icon: Icon(Icons.edit_rounded, color: Color(0xFF00C853)),
               onPressed: () {
                 setState(() {
                   _isEditing = true;
@@ -166,8 +192,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
           if (_isEditing) ...[
-            IconButton(icon: Icon(Icons.close), onPressed: _cancelEditing),
-            IconButton(icon: Icon(Icons.check), onPressed: _saveChanges),
+            IconButton(
+              icon: Icon(Icons.close_rounded, color: Color(0xFFFF1744)),
+              onPressed: _cancelEditing,
+            ),
+            IconButton(
+              icon: Icon(Icons.check_rounded, color: Color(0xFF00C853)),
+              onPressed: _saveChanges,
+            ),
           ],
         ],
       ),
@@ -186,26 +218,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(height: 32),
 
               // User Info Card
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFF1A1A1C),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
-                elevation: 2,
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Personal Information',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3A3D5C),
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF00C853).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.person_rounded,
+                              color: Color(0xFF00C853),
+                              size: 24,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Text(
+                            'Personal Information',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
 
-                      SizedBox(height: 20),
+                      SizedBox(height: 24),
 
                       // Name Field
                       _buildInfoField(
@@ -281,40 +341,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(height: 24),
 
               // Account Info Card
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFF1A1A1C),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 12,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
-                elevation: 2,
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Account Information',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3A3D5C),
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF00C853).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.verified_user_rounded,
+                              color: Color(0xFF00C853),
+                              size: 24,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Text(
+                            'Account Information',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 24),
+
+                      _buildInfoRow(
+                        'Member Since',
+                        '${widget.user.createdAt.day}/${widget.user.createdAt.month}/${widget.user.createdAt.year}',
+                        Icons.date_range_rounded,
                       ),
 
                       SizedBox(height: 16),
 
                       _buildInfoRow(
-                        'Member Since',
-                        '${widget.user.createdAt.day}/${widget.user.createdAt.month}/${widget.user.createdAt.year}',
-                        Icons.date_range,
-                      ),
-
-                      SizedBox(height: 12),
-
-                      _buildInfoRow(
                         'Account Status',
                         'Active',
-                        Icons.verified_user,
-                        valueColor: Colors.green,
+                        Icons.verified_user_rounded,
+                        valueColor: Color(0xFF00C853),
                       ),
                     ],
                   ),
@@ -324,38 +412,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SizedBox(height: 32),
 
               // Logout Button
-              OutlinedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Logout'),
-                      content: Text('Are you sure you want to logout?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel'),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: Color(0xFF1A1A1C),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            widget.onLogout();
-                            Navigator.pop(context);
-                          },
-                          child: Text('Logout'),
+                        title: Text(
+                          'Logout',
+                          style: TextStyle(color: Colors.white),
                         ),
-                      ],
-                    ),
-                  );
-                },
-                icon: Icon(Icons.logout, color: Colors.red),
-                label: Text('Logout', style: TextStyle(color: Colors.red)),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                        content: Text(
+                          'Are you sure you want to logout?',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              widget.onLogout();
+                              Navigator.pop(context);
+                            },
+                            child: Text(
+                              'Logout',
+                              style: TextStyle(color: Color(0xFFFF1744)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.logout_rounded, color: Color(0xFFFF1744)),
+                  label: Text(
+                    'Logout',
+                    style: TextStyle(color: Color(0xFFFF1744)),
                   ),
-                  side: BorderSide(color: Colors.red),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Color(0xFFFF1744)),
+                    backgroundColor: Colors.transparent,
+                  ),
                 ),
               ),
             ],
@@ -377,25 +492,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       enabled: _isEditing,
       keyboardType: keyboardType,
       validator: validator,
+      style: TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Color(0xFF1976D2)),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+        labelStyle: TextStyle(
+          color: _isEditing
+              ? Colors.white.withValues(alpha: 0.7)
+              : Colors.white.withValues(alpha: 0.5),
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: _isEditing
+              ? Color(0xFF00C853)
+              : Colors.white.withValues(alpha: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: _isEditing ? Colors.grey[300]! : Colors.grey[200]!,
+            color: _isEditing
+                ? Colors.white.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.1),
+            width: 1,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF1976D2)),
+          borderSide: BorderSide(color: Color(0xFF00C853), width: 2),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFFFF1744), width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFFFF1744), width: 2),
         ),
         filled: true,
-        fillColor: _isEditing ? Colors.white : Colors.grey[50],
+        fillColor: _isEditing
+            ? Color(0xFF1A1A1C)
+            : Color(0xFF1A1A1C).withValues(alpha: 0.5),
       ),
     );
   }
@@ -408,13 +550,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Row(
       children: [
-        Icon(icon, color: Color(0xFF1976D2), size: 20),
+        Icon(icon, color: Color(0xFF00C853), size: 20),
         SizedBox(width: 12),
         Text(
           '$label: ',
           style: TextStyle(
             fontWeight: FontWeight.w500,
-            color: Color(0xFF8A8D9F),
+            color: Colors.white.withValues(alpha: 0.6),
           ),
         ),
         Expanded(
@@ -422,7 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: valueColor ?? Color(0xFF3A3D5C),
+              color: valueColor ?? Colors.white,
             ),
           ),
         ),

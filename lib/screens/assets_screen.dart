@@ -13,140 +13,51 @@ class AssetsScreen extends StatelessWidget {
     required this.onAddAsset,
   }) : super();
 
-  void _showAddAssetForm(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _AddAssetForm(onAdd: onAddAsset),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF6F8FB),
+      backgroundColor: Color(0xFF0A0A0B), // Dashboard black background
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Assets',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF3A3D5C),
-              ),
+            // Header with icon and title
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF00C853).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.trending_up_outlined,
+                    color: Color(0xFF00C853),
+                    size: 24,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Assets',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 24),
             Expanded(
               child: assets.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No assets added yet!',
-                        style: TextStyle(color: Color(0xFF8A8D9F)),
-                      ),
-                    )
+                  ? _buildEmptyState()
                   : ListView.builder(
                       itemCount: assets.length,
                       itemBuilder: (context, index) {
                         final asset = assets[index];
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          color: Color(0xFFE3F2FD),
-                          elevation: 3,
-                          margin: EdgeInsets.symmetric(vertical: 8),
-                          child: ListTile(
-                            onTap: () async {
-                              await Navigator.push<bool>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EditTransactionScreen(
-                                    transaction: asset,
-                                    index: index,
-                                    boxType: 'assets',
-                                  ),
-                                ),
-                              );
-                              // No need to refresh as Hive will automatically update the UI
-                            },
-                            leading: CircleAvatar(
-                              backgroundColor: Color(0xFF90CAF9),
-                              child: Icon(
-                                Icons.trending_up,
-                                color: Colors.white,
-                              ),
-                            ),
-                            title: Text(
-                              asset.title,
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${asset.date.toLocal().toString().split(' ')[0]} • ${asset.tag}',
-                                ),
-                                if (asset.dueDate != null)
-                                  Text(
-                                    asset.isOverdue
-                                        ? 'Overdue'
-                                        : 'Due in ${asset.daysUntilDue} days',
-                                    style: TextStyle(
-                                      color: asset.isOverdue
-                                          ? Color(0xFFD32F2F)
-                                          : Color(0xFF1976D2),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '+ ₹${asset.amount.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: Color(0xFF388E3C),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (asset.dueDate != null)
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: asset.isCompleted
-                                          ? Color(0xFF4CAF50)
-                                          : asset.isOverdue
-                                          ? Color(0xFFD32F2F)
-                                          : Color(0xFF1976D2),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      asset.isCompleted
-                                          ? 'Received'
-                                          : 'Pending',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
+                        return _buildAssetCard(context, asset, index);
                       },
                     ),
             ),
@@ -154,10 +65,219 @@ class AssetsScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Color(0xFF1976D2),
         onPressed: () => _showAddAssetForm(context),
-        tooltip: 'Add Asset',
+        backgroundColor: Color(0xFF00C853),
         child: Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Color(0xFF1A1A1C),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Color(0xFF00C853), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFF00C853).withValues(alpha: 0.1),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(0xFF00C853).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 48,
+                color: Color(0xFF00C853),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              '🌟 Start Building Your Wealth!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Add your first asset and watch your financial portfolio grow.',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssetCard(BuildContext context, Transaction asset, int index) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: asset.isOverdue ? Color(0xFFFF1744) : Color(0xFF00C853),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (asset.isOverdue ? Color(0xFFFF1744) : Color(0xFF00C853))
+                .withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: () async {
+          await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditTransactionScreen(
+                transaction: asset,
+                index: index,
+                boxType: 'assets',
+              ),
+            ),
+          );
+        },
+        contentPadding: EdgeInsets.all(16),
+        leading: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: (asset.isOverdue ? Color(0xFFFF1744) : Color(0xFF00C853))
+                .withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.trending_up_rounded,
+            color: asset.isOverdue ? Color(0xFFFF1744) : Color(0xFF00C853),
+            size: 20,
+          ),
+        ),
+        title: Text(
+          asset.title,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 4),
+            Text(
+              '${asset.date.toLocal().toString().split(' ')[0]} • ${asset.tag}',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            if (asset.dueDate != null) ...[
+              SizedBox(height: 4),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color:
+                      (asset.isOverdue ? Color(0xFFFF1744) : Color(0xFF00C853))
+                          .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: asset.isOverdue
+                        ? Color(0xFFFF1744)
+                        : Color(0xFF00C853),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  asset.isOverdue
+                      ? 'Overdue'
+                      : 'Due in ${asset.daysUntilDue} days',
+                  style: TextStyle(
+                    color: asset.isOverdue
+                        ? Color(0xFFFF1744)
+                        : Color(0xFF00C853),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '+ ₹${asset.amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: Color(0xFF00C853),
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+            if (asset.dueDate != null) ...[
+              SizedBox(height: 4),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: asset.isCompleted
+                      ? Color(0xFF00C853)
+                      : asset.isOverdue
+                      ? Color(0xFFFF1744)
+                      : Color(0xFF00C853).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  asset.isCompleted ? 'Received' : 'Pending',
+                  style: TextStyle(
+                    color: asset.isCompleted || asset.isOverdue
+                        ? Colors.white
+                        : Color(0xFF00C853),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddAssetForm(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Color(0xFF1A1A1C),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: _AddAssetForm(onAdd: onAddAsset),
       ),
     );
   }
@@ -247,31 +367,83 @@ class _AddAssetFormState extends State<_AddAssetForm> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _selectedTag == 'Loan' ? 'Add Incoming Credit' : 'Add Asset',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF00C853).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.trending_up_outlined,
+                        color: Color(0xFF00C853),
+                        size: 20,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      _selectedTag == 'Loan'
+                          ? 'Add Incoming Credit'
+                          : 'Add Asset',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 24),
                 TextFormField(
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Title',
+                    labelStyle: TextStyle(color: Colors.white54),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
                     ),
-                    prefixIcon: Icon(Icons.title),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF00C853)),
+                    ),
+                    prefixIcon: Icon(Icons.title, color: Color(0xFF00C853)),
+                    filled: true,
+                    fillColor: Color(0xFF0A0A0B),
                   ),
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Enter a title' : null,
                   onSaved: (value) => _title = value!,
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 16),
                 TextFormField(
+                  style: TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Amount',
+                    labelStyle: TextStyle(color: Colors.white54),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
                     ),
-                    prefixIcon: Icon(Icons.attach_money),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF00C853)),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.attach_money,
+                      color: Color(0xFF00C853),
+                    ),
+                    filled: true,
+                    fillColor: Color(0xFF0A0A0B),
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
@@ -283,14 +455,28 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                   },
                   onSaved: (value) => _amount = double.parse(value!),
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 16),
                 DropdownButtonFormField<String>(
+                  style: TextStyle(color: Colors.white),
+                  dropdownColor: Color(0xFF1A1A1C),
                   decoration: InputDecoration(
                     labelText: 'Category',
+                    labelStyle: TextStyle(color: Colors.white54),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
                     ),
-                    prefixIcon: Icon(Icons.category),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF333333)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Color(0xFF00C853)),
+                    ),
+                    prefixIcon: Icon(Icons.category, color: Color(0xFF00C853)),
+                    filled: true,
+                    fillColor: Color(0xFF0A0A0B),
                   ),
                   value: _selectedTag,
                   items: _assetTags.map((tag) {
@@ -308,82 +494,160 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                 ),
                 if (_selectedTag == 'Loan')
                   Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      'Note: Loans will be treated as liabilities (money you owe)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange[700],
-                        fontStyle: FontStyle.italic,
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFFF6F00).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Color(0xFFFF6F00), width: 1),
+                      ),
+                      child: Text(
+                        'Note: Loans will be treated as liabilities (money you owe)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFFF6F00),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                        );
-                        if (picked != null) {
-                          setState(() => _selectedDate = picked);
-                        }
-                      },
-                      child: Text('Select Date'),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                // Only show due date for Loan tag (incoming credit)
-                if (_selectedTag == 'Loan') ...[
-                  Row(
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF0A0A0B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Color(0xFF333333)),
+                  ),
+                  child: Row(
                     children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF00C853),
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Repayment Due: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                       TextButton(
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate:
-                                _dueDate ??
-                                DateTime.now().add(Duration(days: 30)),
-                            firstDate: DateTime.now(),
+                            initialDate: _selectedDate,
+                            firstDate: DateTime(2000),
                             lastDate: DateTime(2100),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.dark(
+                                    primary: Color(0xFF00C853),
+                                    surface: Color(0xFF1A1A1C),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
                           );
                           if (picked != null) {
-                            setState(() => _dueDate = picked);
+                            setState(() => _selectedDate = picked);
                           }
                         },
-                        child: Text('Select Due Date'),
+                        child: Text(
+                          'Select Date',
+                          style: TextStyle(color: Color(0xFF00C853)),
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 12),
-                ],
-                SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF1976D2),
-                    shape: RoundedRectangleBorder(
+                ),
+                // Only show due date for Loan tag (incoming credit)
+                if (_selectedTag == 'Loan') ...[
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF0A0A0B),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Color(0xFF333333)),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          color: Color(0xFFFF6F00),
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Repayment Due: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate:
+                                  _dueDate ??
+                                  DateTime.now().add(Duration(days: 30)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.dark(
+                                      primary: Color(0xFFFF6F00),
+                                      surface: Color(0xFF1A1A1C),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() => _dueDate = picked);
+                            }
+                          },
+                          child: Text(
+                            'Select Due Date',
+                            style: TextStyle(color: Color(0xFFFF6F00)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  onPressed: _submit,
-                  child: Text('Add Asset', style: TextStyle(fontSize: 16)),
+                ],
+                SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF00C853),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                    ),
+                    onPressed: _submit,
+                    child: Text(
+                      'Add Asset',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

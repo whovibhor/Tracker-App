@@ -197,12 +197,16 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF6F8FB),
+      backgroundColor: Color(0xFF0A0A0B),
       appBar: AppBar(
-        title: Text(_isSignUp ? 'Sign Up' : 'Sign In'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
+        title: Text(
+          _isSignUp ? 'Sign Up' : 'Sign In',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Color(0xFF0A0A0B),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
@@ -213,28 +217,50 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               SizedBox(height: 20),
 
-              // Welcome Text
-              Text(
-                _isSignUp ? 'Create Your Account' : 'Welcome Back',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF3A3D5C),
+              // Welcome Section with Icon
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF00C853).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: Icon(
+                        _isSignUp
+                            ? Icons.person_add_rounded
+                            : Icons.login_rounded,
+                        size: 48,
+                        color: Color(0xFF00C853),
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    Text(
+                      _isSignUp ? 'Create Your Account' : 'Welcome Back',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      _isSignUp
+                          ? 'Sign up to save your financial progress'
+                          : 'Sign in to access your account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-
-              SizedBox(height: 8),
-
-              Text(
-                _isSignUp
-                    ? 'Sign up to save your financial progress'
-                    : 'Sign in to access your account',
-                style: TextStyle(fontSize: 16, color: Color(0xFF8A8D9F)),
-                textAlign: TextAlign.center,
-              ),
-
-              SizedBox(height: 32),
 
               // Profile Picture (only for sign up)
               if (_isSignUp) ...[
@@ -246,8 +272,15 @@ class _AuthScreenState extends State<AuthScreen> {
                       height: 100,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                        border: Border.all(color: Color(0xFF1976D2), width: 2),
+                        color: Color(0xFF1A1A1C),
+                        border: Border.all(color: Color(0xFF00C853), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFF00C853).withValues(alpha: 0.1),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
                       ),
                       child: _profileImage != null
                           ? ClipOval(
@@ -259,9 +292,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             )
                           : Icon(
-                              Icons.camera_alt,
+                              Icons.add_a_photo_rounded,
                               size: 40,
-                              color: Color(0xFF1976D2),
+                              color: Color(0xFF00C853),
                             ),
                     ),
                   ),
@@ -271,11 +304,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
                 Text(
                   'Tap to add profile picture',
-                  style: TextStyle(color: Color(0xFF8A8D9F), fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
-                SizedBox(height: 24),
+                SizedBox(height: 32),
               ],
 
               // Name Field (only for sign up)
@@ -345,50 +381,58 @@ class _AuthScreenState extends State<AuthScreen> {
               SizedBox(height: 32),
 
               // Submit Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF1976D2),
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF00C853),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
+                  child: _isLoading
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _isSignUp ? 'Create Account' : 'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        _isSignUp ? 'Create Account' : 'Sign In',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
               ),
 
               SizedBox(height: 16),
 
               // Google Sign-In Button
-              OutlinedButton.icon(
-                onPressed: _signInWithGoogle,
-                icon: Icon(Icons.g_translate, color: Color(0xFF1976D2)),
-                label: Text(
-                  'Sign in with Google',
-                  style: TextStyle(color: Color(0xFF1976D2)),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _signInWithGoogle,
+                  icon: Icon(Icons.g_translate, color: Color(0xFF00C853)),
+                  label: Text(
+                    'Sign in with Google',
+                    style: TextStyle(color: Color(0xFF00C853)),
                   ),
-                  side: BorderSide(color: Color(0xFF1976D2)),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Color(0xFF00C853)),
+                    backgroundColor: Colors.transparent,
+                  ),
                 ),
               ),
 
@@ -402,7 +446,9 @@ class _AuthScreenState extends State<AuthScreen> {
                     _isSignUp
                         ? 'Already have an account? '
                         : "Don't have an account? ",
-                    style: TextStyle(color: Color(0xFF8A8D9F)),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
@@ -413,7 +459,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Text(
                       _isSignUp ? 'Sign In' : 'Sign Up',
                       style: TextStyle(
-                        color: Color(0xFF1976D2),
+                        color: Color(0xFF00C853),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -440,23 +486,32 @@ class _AuthScreenState extends State<AuthScreen> {
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
+        style: TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Color(0xFF1976D2)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey[300]!),
-          ),
+          labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+          prefixIcon: Icon(icon, color: Color(0xFF00C853)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey[300]!),
+            borderSide: BorderSide(
+              color: Colors.white.withValues(alpha: 0.2),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Color(0xFF1976D2)),
+            borderSide: BorderSide(color: Color(0xFF00C853), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFFFF1744), width: 1),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Color(0xFFFF1744), width: 2),
           ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Color(0xFF1A1A1C),
         ),
       ),
     );
