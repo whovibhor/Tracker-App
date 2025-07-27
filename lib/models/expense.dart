@@ -20,11 +20,25 @@ class Transaction extends HiveObject {
   final DateTime date;
   @HiveField(3)
   final TransactionType type;
+  @HiveField(4)
+  final String tag;
+  @HiveField(5)
+  final DateTime? dueDate;
+  @HiveField(6)
+  final bool isCompleted;
 
   Transaction({
     required this.title,
     required this.amount,
     required this.date,
     required this.type,
+    required this.tag,
+    this.dueDate,
+    this.isCompleted = false,
   });
+
+  bool get isOverdue =>
+      dueDate != null && !isCompleted && DateTime.now().isAfter(dueDate!);
+  int get daysUntilDue =>
+      dueDate != null ? dueDate!.difference(DateTime.now()).inDays : 0;
 }

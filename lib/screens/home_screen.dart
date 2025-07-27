@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/expense.dart';
 import 'assets_screen.dart';
 import 'liabilities_screen.dart';
+import 'dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -32,14 +35,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _initHive() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(TransactionTypeAdapter());
-    Hive.registerAdapter(TransactionAdapter());
-    assetsBox = await Hive.openBox('assetsBox');
-    liabilitiesBox = await Hive.openBox('liabilitiesBox');
-    setState(() {
-      _hiveInitialized = true;
-    });
+    try {
+      assetsBox = Hive.box('assetsBox');
+      liabilitiesBox = Hive.box('liabilitiesBox');
+      setState(() {
+        _hiveInitialized = true;
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error accessing Hive boxes: $e');
+      }
+      // Fallback: try to open boxes if they don't exist
+      try {
+        assetsBox = await Hive.openBox('assetsBox');
+        liabilitiesBox = await Hive.openBox('liabilitiesBox');
+        setState(() {
+          _hiveInitialized = true;
+        });
+      } catch (e2) {
+        if (kDebugMode) {
+          debugPrint('Error opening Hive boxes: $e2');
+        }
+      }
+    }
   }
 
   void _addAsset(Transaction asset) {
@@ -50,6 +68,26 @@ class _HomeScreenState extends State<HomeScreen> {
   void _addLiability(Transaction liability) {
     liabilitiesBox.add(liability);
     setState(() {});
+  }
+
+  void _toggleCompleted(Transaction transaction) {
+    final box = transaction.type == TransactionType.asset
+        ? assetsBox
+        : liabilitiesBox;
+    final index = box.values.toList().indexOf(transaction);
+    if (index != -1) {
+      final updatedTransaction = Transaction(
+        title: transaction.title,
+        amount: transaction.amount,
+        date: transaction.date,
+        type: transaction.type,
+        tag: transaction.tag,
+        dueDate: transaction.dueDate,
+        isCompleted: !transaction.isCompleted,
+      );
+      box.putAt(index, updatedTransaction);
+      setState(() {});
+    }
   }
 
   double get _netAmount {
@@ -90,19 +128,30 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.menu, color: Colors.black),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-          // Net amount
+          // App title and net amount
           Expanded(
-            child: Center(
-              child: Text(
-                (_netAmount >= 0
-                    ? '+ ₹${_netAmount.toStringAsFixed(2)}'
-                    : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
-                style: TextStyle(
-                  color: _netAmount >= 0 ? Colors.green : Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Finly',
+                  style: TextStyle(
+                    color: Color(0xFF1976D2),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
+                Text(
+                  (_netAmount >= 0
+                      ? '+ ₹${_netAmount.toStringAsFixed(2)}'
+                      : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
+                  style: TextStyle(
+                    color: _netAmount >= 0 ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
             ),
           ),
           // Account button
@@ -195,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 120,
           padding: EdgeInsets.symmetric(vertical: 3.5, horizontal: 6),
           decoration: BoxDecoration(
-            color: selected ? color.withOpacity(0.12) : Colors.white,
+            color: selected ? color.withValues(alpha: 0.12) : Colors.white,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -240,7 +289,11 @@ class _HomeScreenState extends State<HomeScreen> {
           assets: assetsBox.values.cast<Transaction>().toList(),
           onAddAsset: _addAsset,
         ),
-        Center(child: Text('Dashboard Screen')),
+        DashboardScreen(
+          assets: assetsBox.values.cast<Transaction>().toList(),
+          liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
+          onToggleCompleted: _toggleCompleted,
+        ),
         Center(child: Text('Account Screen')),
       ],
     );

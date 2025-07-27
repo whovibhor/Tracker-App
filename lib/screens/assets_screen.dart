@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
+import '../utils/validation.dart';
 
 class AssetsScreen extends StatelessWidget {
   final List<Transaction> assets;
   final void Function(Transaction) onAddAsset;
 
-  const AssetsScreen({Key? key, required this.assets, required this.onAddAsset})
-    : super(key: key);
+  const AssetsScreen({
+    super.key,
+    required this.assets,
+    required this.onAddAsset,
+  }) : super();
 
   void _showAddAssetForm(BuildContext context) {
     showModalBottomSheet(
@@ -67,15 +71,63 @@ class AssetsScreen extends StatelessWidget {
                               asset.title,
                               style: TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            subtitle: Text(
-                              '${asset.date.toLocal().toString().split(' ')[0]}',
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${asset.date.toLocal().toString().split(' ')[0]} • ${asset.tag}',
+                                ),
+                                if (asset.dueDate != null)
+                                  Text(
+                                    asset.isOverdue
+                                        ? 'Overdue'
+                                        : 'Due in ${asset.daysUntilDue} days',
+                                    style: TextStyle(
+                                      color: asset.isOverdue
+                                          ? Color(0xFFD32F2F)
+                                          : Color(0xFF1976D2),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                              ],
                             ),
-                            trailing: Text(
-                              '+ ₹${asset.amount.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                color: Color(0xFF388E3C),
-                                fontWeight: FontWeight.bold,
-                              ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '+ ₹${asset.amount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: Color(0xFF388E3C),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (asset.dueDate != null)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: asset.isCompleted
+                                          ? Color(0xFF4CAF50)
+                                          : asset.isOverdue
+                                          ? Color(0xFFD32F2F)
+                                          : Color(0xFF1976D2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      asset.isCompleted
+                                          ? 'Received'
+                                          : 'Pending',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         );
@@ -88,8 +140,8 @@ class AssetsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFF1976D2),
         onPressed: () => _showAddAssetForm(context),
-        child: Icon(Icons.add, color: Colors.white),
         tooltip: 'Add Asset',
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -97,7 +149,7 @@ class AssetsScreen extends StatelessWidget {
 
 class _AddAssetForm extends StatefulWidget {
   final void Function(Transaction) onAdd;
-  const _AddAssetForm({Key? key, required this.onAdd}) : super(key: key);
+  const _AddAssetForm({required this.onAdd});
 
   @override
   State<_AddAssetForm> createState() => _AddAssetFormState();
@@ -108,16 +160,50 @@ class _AddAssetFormState extends State<_AddAssetForm> {
   String _title = '';
   double _amount = 0.0;
   DateTime _selectedDate = DateTime.now();
+  String _selectedTag = 'Pocket Money';
+  DateTime? _dueDate;
+
+  final List<String> _assetTags = [
+    'Pocket Money',
+    'Loan', // This will be treated as incoming credit (liability)
+    'Profits',
+    'Random Money I Get', 
+    'Salary',
+    'Investment Return',
+    'Gift',
+    'Other',
+  ];
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+
+      // Sanitize inputs for security
+      final sanitizedTitle = ValidationUtils.sanitizeInput(_title);
+      final sanitizedTag = ValidationUtils.sanitizeTag(_selectedTag);
+
+      // Additional validation
+      if (!ValidationUtils.isValidAmount(_amount.toString())) {
+        ValidationUtils.logSecurityEvent('Invalid amount', _amount.toString());
+        return;
+      }
+
+      if (!ValidationUtils.isValidDate(_selectedDate)) {
+        ValidationUtils.logSecurityEvent(
+          'Invalid date',
+          _selectedDate.toString(),
+        );
+        return;
+      }
+
       widget.onAdd(
         Transaction(
-          title: _title,
+          title: sanitizedTitle,
           amount: _amount,
           date: _selectedDate,
-          type: TransactionType.asset,
+          type: sanitizedTag == 'Loan' ? TransactionType.liability : TransactionType.asset,
+          tag: sanitizedTag,
+          dueDate: sanitizedTag == 'Loan' ? _dueDate : null,
         ),
       );
       Navigator.of(context).pop();
@@ -169,6 +255,25 @@ class _AddAssetFormState extends State<_AddAssetForm> {
               onSaved: (value) => _amount = double.parse(value!),
             ),
             SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                prefixIcon: Icon(Icons.category),
+              ),
+              value: _selectedTag,
+              items: _assetTags.map((tag) {
+                return DropdownMenuItem(value: tag, child: Text(tag));
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedTag = value!;
+                });
+              },
+            ),
+            SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -192,6 +297,35 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                 ),
               ],
             ),
+            SizedBox(height: 12),
+            // Only show due date for Loan tag (incoming credit)
+            if (_selectedTag == 'Loan') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Repayment Due: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _dueDate ?? DateTime.now().add(Duration(days: 30)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => _dueDate = picked);
+                      }
+                    },
+                    child: Text('Select Due Date'),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+            ],
             SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(

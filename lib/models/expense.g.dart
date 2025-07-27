@@ -21,13 +21,16 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       amount: fields[1] as double,
       date: fields[2] as DateTime,
       type: fields[3] as TransactionType,
+      tag: fields[4] as String,
+      dueDate: fields[5] as DateTime?,
+      isCompleted: fields[6] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -35,7 +38,13 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(2)
       ..write(obj.date)
       ..writeByte(3)
-      ..write(obj.type);
+      ..write(obj.type)
+      ..writeByte(4)
+      ..write(obj.tag)
+      ..writeByte(5)
+      ..write(obj.dueDate)
+      ..writeByte(6)
+      ..write(obj.isCompleted);
   }
 
   @override
