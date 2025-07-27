@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
@@ -118,43 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Calculate net worth (assets - liabilities)
-  double _calculateNetWorth() {
-    if (!_hiveInitialized) return 0.0;
-
-    double totalAssets = 0.0;
-    double totalLiabilities = 0.0;
-
-    try {
-      // Calculate total assets
-      for (int i = 0; i < assetsBox.length; i++) {
-        final asset = assetsBox.getAt(i) as Transaction?;
-        if (asset != null && asset.type == TransactionType.asset) {
-          totalAssets += asset.amount;
-        }
-      }
-
-      // Calculate total liabilities
-      for (int i = 0; i < liabilitiesBox.length; i++) {
-        final liability = liabilitiesBox.getAt(i) as Transaction?;
-        if (liability != null) {
-          totalLiabilities += liability.amount;
-        }
-      }
-
-      return totalAssets - totalLiabilities;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error calculating net worth: $e');
-      }
-      return 0.0;
-    }
-  }
-
-  String _formatCurrency(double amount) {
-    return '\$${amount.toStringAsFixed(2)}';
-  }
-
   double get _netAmount {
     double assets = 0;
     double liabilities = 0;
@@ -249,40 +213,124 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required bool isSelected,
+    bool isDestructive = false,
+  }) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? Color(0xFF00C853).withValues(alpha: 0.1)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected
+            ? Border.all(
+                color: Color(0xFF00C853).withValues(alpha: 0.3),
+                width: 1,
+              )
+            : null,
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: isDestructive
+              ? Color(0xFFFF1744)
+              : isSelected
+              ? Color(0xFF00C853)
+              : Color(0xFF999999),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isDestructive
+                ? Color(0xFFFF1744)
+                : isSelected
+                ? Color(0xFF00C853)
+                : Colors.white,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Widget _buildTopBar(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 2,
+      backgroundColor: Color(0xFF1A1A1C), // Dark app bar
+      elevation: 0,
+      systemOverlayStyle:
+          SystemUiOverlayStyle.light, // Light status bar content
       leading: Builder(
         builder: (context) => IconButton(
-          icon: Icon(Icons.menu, color: Colors.black),
+          icon: Icon(Icons.menu_rounded, color: Colors.white),
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      title: Text(
-        (_netAmount >= 0
-            ? '+ ₹${_netAmount.toStringAsFixed(2)}'
-            : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
-        style: TextStyle(
-          color: _netAmount >= 0 ? Colors.green : Colors.red,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
+      title: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Color(0xFF0A0A0B),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _netAmount >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          (_netAmount >= 0
+              ? '+ ₹${_netAmount.toStringAsFixed(2)}'
+              : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
+          style: TextStyle(
+            color: _netAmount >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
         ),
       ),
       centerTitle: true,
       actions: [
         _currentUser != null
-            ? IconButton(
-                icon: Icon(Icons.account_circle, color: Colors.black),
-                onPressed: _showProfileScreen,
+            ? Container(
+                margin: EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF00C853).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.account_circle_rounded,
+                      color: Color(0xFF00C853),
+                    ),
+                  ),
+                  onPressed: _showProfileScreen,
+                ),
               )
-            : TextButton(
-                onPressed: _showAuthScreen,
-                child: Text(
-                  'Login',
-                  style: TextStyle(
-                    color: Color(0xFF1976D2),
-                    fontWeight: FontWeight.w600,
+            : Container(
+                margin: EdgeInsets.only(right: 8),
+                child: TextButton(
+                  onPressed: _showAuthScreen,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(0xFF00C853), width: 1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Login',
+                      style: TextStyle(
+                        color: Color(0xFF00C853),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -301,11 +349,12 @@ class _HomeScreenState extends State<HomeScreen> {
             margin: const EdgeInsets.only(bottom: 28),
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFF1A1A1C),
               borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: Color(0xFF333333), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black26,
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
@@ -317,28 +366,28 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: _buildNavItem(
-                    icon: Icons.money_off,
+                    icon: Icons.trending_down_outlined,
                     label: 'Liabilities',
                     selected: _selectedIndex == 0,
-                    color: Colors.red,
+                    color: Color(0xFFFF1744),
                     onTap: () => _onNavTap(0),
                   ),
                 ),
                 Expanded(
                   child: _buildNavItem(
-                    icon: Icons.dashboard,
+                    icon: Icons.dashboard_outlined,
                     label: 'Dashboard',
                     selected: _selectedIndex == 2,
-                    color: Colors.blue,
+                    color: Color(0xFF00C853),
                     onTap: () => _onNavTap(2),
                   ),
                 ),
                 Expanded(
                   child: _buildNavItem(
-                    icon: Icons.account_balance_wallet,
+                    icon: Icons.trending_up_outlined,
                     label: 'Assets',
                     selected: _selectedIndex == 1,
-                    color: Colors.green,
+                    color: Color(0xFF00C853),
                     onTap: () => _onNavTap(1),
                   ),
                 ),
@@ -366,20 +415,27 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 120,
           padding: EdgeInsets.symmetric(vertical: 3.5, horizontal: 6),
           decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: 0.12) : Colors.white,
+            color: selected ? color.withValues(alpha: 0.15) : Color(0xFF1A1A1C),
             borderRadius: BorderRadius.circular(24),
+            border: selected
+                ? Border.all(color: color.withValues(alpha: 0.3), width: 1)
+                : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.max,
             children: [
-              Icon(icon, color: color, size: 22),
+              Icon(
+                selected ? _getFilledIcon(icon) : icon,
+                color: selected ? color : Color(0xFF999999),
+                size: 22,
+              ),
               SizedBox(height: 2),
               Text(
                 label,
                 style: TextStyle(
-                  color: color,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? color : Color(0xFF999999),
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 12,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -389,6 +445,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  IconData _getFilledIcon(IconData outlinedIcon) {
+    switch (outlinedIcon) {
+      case Icons.trending_down_outlined:
+        return Icons.trending_down;
+      case Icons.dashboard_outlined:
+        return Icons.dashboard;
+      case Icons.trending_up_outlined:
+        return Icons.trending_up;
+      default:
+        return outlinedIcon;
+    }
   }
 
   Widget _buildBody() {
@@ -497,209 +566,249 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Configure status bar to match app theme
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF1A1A1C), // Dark status bar background
+        statusBarIconBrightness: Brightness.light, // Light icons
+        statusBarBrightness: Brightness.dark, // For iOS
+      ),
+    );
+
     return Scaffold(
+      backgroundColor: Color(0xFF0A0A0B), // Black background
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        backgroundColor: Color(0xFF0A0A0B),
+        child: Column(
           children: [
-            // Enhanced drawer header with user profile
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                ),
-              ),
-              child: _currentUser != null
-                  ? Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 20),
-                          // Profile picture
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 3),
-                              color: Colors.white.withValues(alpha: 0.1),
+            _currentUser != null
+                ? Container(
+                    margin: EdgeInsets.only(
+                      top: 40,
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                    ),
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF00C853).withValues(alpha: 0.1),
+                          Color(0xFF1A1A1C),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Color(0xFF00C853).withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Color(0xFF1A1A1C),
+                            borderRadius: BorderRadius.circular(40),
+                            border: Border.all(
+                              color: Color(0xFF00C853),
+                              width: 2,
                             ),
-                            child: _currentUser!.profilePicturePath != null
-                                ? ClipOval(
-                                    child: Image.file(
-                                      File(_currentUser!.profilePicturePath!),
-                                      fit: BoxFit.cover,
-                                      width: 70,
-                                      height: 70,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.person,
-                                              size: 40,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                    ),
-                                  )
-                                : Icon(
-                                    Icons.person,
-                                    size: 40,
-                                    color: Colors.white,
+                          ),
+                          child:
+                              _currentUser!.profilePicturePath != null &&
+                                  _currentUser!.profilePicturePath!.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(38),
+                                  child: Image.file(
+                                    File(_currentUser!.profilePicturePath!),
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: Color(0xFF00C853),
+                                        ),
                                   ),
+                                )
+                              : Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Color(0xFF00C853),
+                                ),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          _currentUser!.name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
                           ),
-                          SizedBox(height: 12),
-                          // User name
-                          Text(
-                            _currentUser!.name,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                        ),
+                        SizedBox(height: 6),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _netAmount >= 0
+                                ? Color(0xFF00C853).withValues(alpha: 0.1)
+                                : Color(0xFFFF1744).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _netAmount >= 0
+                                  ? Color(0xFF00C853)
+                                  : Color(0xFFFF1744),
+                              width: 1,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 4),
-                          // Net worth
-                          Text(
-                            'Net Worth: ${_formatCurrency(_calculateNetWorth())}',
+                          child: Text(
+                            'Net Worth: ${_netAmount >= 0 ? '+' : '-'}₹${_netAmount.abs().toStringAsFixed(2)}',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: _netAmount >= 0
+                                  ? Color(0xFF00C853)
+                                  : Color(0xFFFF1744),
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          SizedBox(height: 8),
-                          // View profile button
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                              _onNavTap(3); // Navigate to profile
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Text(
-                                'View Profile',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 40),
-                          Icon(
-                            Icons.account_circle,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Welcome to FINLY',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                              _showAuthScreen();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  )
+                : Container(
+                    margin: EdgeInsets.only(
+                      top: 50,
+                      left: 16,
+                      right: 16,
+                      bottom: 20,
+                    ),
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF1A1A1C),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Color(0xFF00C853).withValues(alpha: 0.3),
+                        width: 1,
                       ),
                     ),
-            ),
-            ListTile(
-              leading: Icon(Icons.dashboard),
-              title: Text('Dashboard'),
-              onTap: () {
-                _onNavTap(2);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.account_balance_wallet),
-              title: Text('Assets'),
-              onTap: () {
-                _onNavTap(1);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.money_off),
-              title: Text('Liabilities'),
-              onTap: () {
-                _onNavTap(0);
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.history),
-              title: Text('History'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HistoryScreen(),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.account_circle_outlined,
+                          size: 60,
+                          color: Color(0xFF666666),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Welcome to FINLY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showAuthScreen();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF00C853),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Sign In',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.account_circle),
-              title: Text('Account'),
-              onTap: () {
-                _onNavTap(3);
-                Navigator.pop(context);
-              },
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: ListView(
+                  children: [
+                    _buildDrawerItem(
+                      icon: Icons.dashboard_outlined,
+                      title: 'Dashboard',
+                      onTap: () {
+                        _onNavTap(2);
+                        Navigator.pop(context);
+                      },
+                      isSelected: _selectedIndex == 2,
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.trending_up_outlined,
+                      title: 'Assets',
+                      onTap: () {
+                        _onNavTap(1);
+                        Navigator.pop(context);
+                      },
+                      isSelected: _selectedIndex == 1,
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.trending_down_outlined,
+                      title: 'Liabilities',
+                      onTap: () {
+                        _onNavTap(0);
+                        Navigator.pop(context);
+                      },
+                      isSelected: _selectedIndex == 0,
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.history_outlined,
+                      title: 'History',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HistoryScreen(),
+                          ),
+                        );
+                      },
+                      isSelected: false,
+                    ),
+                    Divider(color: Color(0xFF333333), thickness: 1, height: 32),
+                    if (_currentUser != null)
+                      _buildDrawerItem(
+                        icon: Icons.person_outline,
+                        title: 'Profile',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _onNavTap(3);
+                        },
+                        isSelected: _selectedIndex == 3,
+                      ),
+                    if (_currentUser != null)
+                      _buildDrawerItem(
+                        icon: Icons.logout_outlined,
+                        title: 'Sign Out',
+                        onTap: _logout,
+                        isSelected: false,
+                        isDestructive: true,
+                      ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
