@@ -481,6 +481,9 @@ class _HomeScreenState extends State<HomeScreen> {
             assets: assetsBox.values.cast<Transaction>().toList(),
             liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
             onToggleCompleted: _toggleCompleted,
+            onNavigateToAssets: () => _onNavTap(1), // Navigate to Assets
+            onNavigateToLiabilities: () =>
+                _onNavTap(0), // Navigate to Liabilities
           );
         } else {
           return AssetsScreen(

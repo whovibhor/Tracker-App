@@ -5,12 +5,16 @@ class DashboardScreen extends StatelessWidget {
   final List<Transaction> assets;
   final List<Transaction> liabilities;
   final void Function(Transaction) onToggleCompleted;
+  final VoidCallback? onNavigateToAssets;
+  final VoidCallback? onNavigateToLiabilities;
 
   const DashboardScreen({
     super.key,
     required this.assets,
     required this.liabilities,
     required this.onToggleCompleted,
+    this.onNavigateToAssets,
+    this.onNavigateToLiabilities,
   });
 
   double get _netWorth {
@@ -227,7 +231,7 @@ class DashboardScreen extends StatelessWidget {
         SizedBox(
           height: 120,
           child: _incomingBills.isEmpty
-              ? _buildEmptyState('No upcoming bills', Icons.receipt_long)
+              ? _buildBillsEmptyState()
               : ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: _incomingBills.length,
@@ -277,10 +281,7 @@ class DashboardScreen extends StatelessWidget {
           SizedBox(height: 12),
           Expanded(
             child: _incomingCredits.isEmpty
-                ? _buildEmptyState(
-                    'No upcoming credits',
-                    Icons.account_balance_wallet,
-                  )
+                ? _buildCreditsEmptyState()
                 : ListView.builder(
                     itemCount: _incomingCredits.length,
                     itemBuilder: (context, index) {
@@ -469,16 +470,134 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(String message, IconData icon) {
-    return Center(
+  Widget _buildBillsEmptyState() {
+    return Container(
+      height: 120,
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFFFF9E6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(0xFFFFE0B2), width: 1),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 48, color: Color(0xFF8A8D9F)),
+          Icon(Icons.receipt_long_outlined, size: 32, color: Color(0xFFFF8F00)),
           SizedBox(height: 8),
           Text(
-            message,
-            style: TextStyle(color: Color(0xFF8A8D9F), fontSize: 16),
+            '💸 Forgot to add your bills?',
+            style: TextStyle(
+              color: Color(0xFFE65100),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 6),
+          GestureDetector(
+            onTap: onNavigateToLiabilities,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: Color(0xFFFF8F00),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFFFF8F00).withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                'Add Now',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditsEmptyState() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Color(0xFFF1F8E9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(0xFFC8E6C9), width: 1),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            size: 40,
+            color: Color(0xFF388E3C),
+          ),
+          SizedBox(height: 12),
+          Text(
+            '🌟 Ready to grow your wealth?',
+            style: TextStyle(
+              color: Color(0xFF2E7D32),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Add your assets and watch your net worth soar!',
+            style: TextStyle(
+              color: Color(0xFF4CAF50),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 16),
+          GestureDetector(
+            onTap: onNavigateToAssets,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF4CAF50).withValues(alpha: 0.4),
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_circle_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    'Add Assets Now',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
