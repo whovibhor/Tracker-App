@@ -28,24 +28,20 @@ class SwipeableTransactionCard extends StatefulWidget {
 class _SwipeableTransactionCardState extends State<SwipeableTransactionCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
 
   double _dragPosition = 0.0;
   bool _isDragging = false;
 
-  static const double _editThreshold = 80.0;
-  static const double _completeThreshold = 80.0;
+  static const double _editThreshold = 70.0;
+  static const double _completeThreshold = 70.0;
+  static const double _maxDragDistance = 120.0;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 250),
+      duration: Duration(milliseconds: 200),
       vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
   }
 
@@ -65,7 +61,7 @@ class _SwipeableTransactionCardState extends State<SwipeableTransactionCard>
   void _onPanUpdate(DragUpdateDetails details) {
     setState(() {
       _dragPosition += details.delta.dx;
-      _dragPosition = _dragPosition.clamp(-120.0, 120.0);
+      _dragPosition = _dragPosition.clamp(-_maxDragDistance, _maxDragDistance);
     });
   }
 
@@ -135,19 +131,6 @@ class _SwipeableTransactionCardState extends State<SwipeableTransactionCard>
     }
   }
 
-  Color _getLeftActionColor() {
-    double opacity = (_dragPosition.abs() / _editThreshold).clamp(0.0, 1.0);
-    return Color(0xFF00C853).withValues(alpha: opacity);
-  }
-
-  Color _getRightActionColor() {
-    double opacity = (_dragPosition.abs() / _completeThreshold).clamp(0.0, 1.0);
-    return (widget.transaction.isCompleted
-            ? Color(0xFFFF1744)
-            : Color(0xFF00C853))
-        .withValues(alpha: opacity);
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -156,107 +139,147 @@ class _SwipeableTransactionCardState extends State<SwipeableTransactionCard>
       onPanEnd: _onPanEnd,
       child: Stack(
         children: [
-          // Background actions
+          // Clean background without colored areas
           Container(
             margin: EdgeInsets.only(bottom: 12),
+            height: 80,
             decoration: BoxDecoration(
-              color: Color(0xFF1A1A1C),
+              color: Color(0xFF0A0A0B), // Same as app background
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                // Left action (Edit)
-                if (_dragPosition < -10)
-                  Expanded(
-                    flex: _dragPosition < -_editThreshold ? 2 : 1,
-                    child: Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: _getLeftActionColor(),
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          bottomLeft: Radius.circular(16),
-                        ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.edit_outlined,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Edit',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                // Left side - Complete/Uncomplete icon area (Right swipe)
+                Container(
+                  width: 80,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      opacity: _dragPosition > 5
+                          ? (_dragPosition / _completeThreshold).clamp(0.3, 1.0)
+                          : 0.0,
+                      duration: Duration(milliseconds: 100),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color:
+                                  (widget.transaction.isCompleted
+                                          ? Color(0xFFFF1744)
+                                          : Color(0xFF00C853))
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    (widget.transaction.isCompleted
+                                            ? Color(0xFFFF1744)
+                                            : Color(0xFF00C853))
+                                        .withValues(alpha: 0.3),
+                                width: 1,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                Spacer(),
-
-                // Right action (Complete/Uncomplete)
-                if (_dragPosition > 10)
-                  Expanded(
-                    flex: _dragPosition > _completeThreshold ? 2 : 1,
-                    child: Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: _getRightActionColor(),
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(16),
-                          bottomRight: Radius.circular(16),
-                        ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
+                            child: Icon(
                               widget.transaction.isCompleted
-                                  ? Icons.undo_outlined
+                                  ? Icons.close_outlined
                                   : Icons.check_outlined,
-                              color: Colors.white,
-                              size: 20,
+                              color: widget.transaction.isCompleted
+                                  ? Color(0xFFFF1744)
+                                  : Color(0xFF00C853),
+                              size: 16,
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              widget.transaction.isCompleted
-                                  ? 'Undo'
-                                  : 'Complete',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            widget.transaction.isCompleted ? 'Undo' : 'Done',
+                            style: TextStyle(
+                              color: widget.transaction.isCompleted
+                                  ? Color(0xFFFF1744)
+                                  : Color(0xFF00C853),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
+                ),
+
+                Expanded(child: SizedBox()),
+
+                // Right side - Edit icon area (Left swipe)
+                Container(
+                  width: 80,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      opacity: _dragPosition < -5
+                          ? (_dragPosition.abs() / _editThreshold).clamp(
+                              0.3,
+                              1.0,
+                            )
+                          : 0.0,
+                      duration: Duration(milliseconds: 100),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF00C853).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Color(0xFF00C853).withValues(alpha: 0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              color: Color(0xFF00C853),
+                              size: 16,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: Color(0xFF00C853),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
 
-          // Main card
+          // Main card with smooth translation
           AnimatedBuilder(
             animation: _animationController,
             builder: (context, child) {
               return Transform.translate(
                 offset: Offset(_dragPosition, 0),
                 child: Transform.scale(
-                  scale: _isDragging ? 0.98 : _scaleAnimation.value,
-                  child: widget.child,
+                  scale: _isDragging ? 0.99 : 1.0, // Subtle scale effect
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: _isDragging
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: widget.child,
+                  ),
                 ),
               );
             },
