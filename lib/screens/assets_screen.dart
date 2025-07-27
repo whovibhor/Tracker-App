@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../utils/validation.dart';
+import 'edit_transaction_screen.dart';
 
 class AssetsScreen extends StatelessWidget {
   final List<Transaction> assets;
@@ -60,6 +61,19 @@ class AssetsScreen extends StatelessWidget {
                           elevation: 3,
                           margin: EdgeInsets.symmetric(vertical: 8),
                           child: ListTile(
+                            onTap: () async {
+                              await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditTransactionScreen(
+                                    transaction: asset,
+                                    index: index,
+                                    boxType: 'assets',
+                                  ),
+                                ),
+                              );
+                              // No need to refresh as Hive will automatically update the UI
+                            },
                             leading: CircleAvatar(
                               backgroundColor: Color(0xFF90CAF9),
                               child: Icon(
@@ -167,7 +181,7 @@ class _AddAssetFormState extends State<_AddAssetForm> {
     'Pocket Money',
     'Loan', // This will be treated as incoming credit (liability)
     'Profits',
-    'Random Money I Get', 
+    'Random Money I Get',
     'Salary',
     'Investment Return',
     'Gift',
@@ -201,7 +215,9 @@ class _AddAssetFormState extends State<_AddAssetForm> {
           title: sanitizedTitle,
           amount: _amount,
           date: _selectedDate,
-          type: sanitizedTag == 'Loan' ? TransactionType.liability : TransactionType.asset,
+          type: sanitizedTag == 'Loan'
+              ? TransactionType.liability
+              : TransactionType.asset,
           tag: sanitizedTag,
           dueDate: sanitizedTag == 'Loan' ? _dueDate : null,
         ),
@@ -220,7 +236,7 @@ class _AddAssetFormState extends State<_AddAssetForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Add Asset',
+              _selectedTag == 'Loan' ? 'Add Incoming Credit' : 'Add Asset',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
@@ -270,9 +286,25 @@ class _AddAssetFormState extends State<_AddAssetForm> {
               onChanged: (value) {
                 setState(() {
                   _selectedTag = value!;
+                  // Reset due date when changing from/to loan
+                  if (_selectedTag != 'Loan') {
+                    _dueDate = null;
+                  }
                 });
               },
             ),
+            if (_selectedTag == 'Loan')
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Note: Loans will be treated as liabilities (money you owe)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange[700],
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
             SizedBox(height: 12),
             Row(
               children: [
@@ -312,7 +344,8 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                     onPressed: () async {
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: _dueDate ?? DateTime.now().add(Duration(days: 30)),
+                        initialDate:
+                            _dueDate ?? DateTime.now().add(Duration(days: 30)),
                         firstDate: DateTime.now(),
                         lastDate: DateTime(2100),
                       );

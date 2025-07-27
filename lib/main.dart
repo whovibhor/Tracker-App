@@ -17,8 +17,9 @@ class FinlyApp extends StatelessWidget {
       title: 'Finly',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        fontFamily: 'Poppins',
         scaffoldBackgroundColor: Color(0xFFF6F8FB),
+        useMaterial3: false, // Disable Material 3 for better icon compatibility
+        iconTheme: IconThemeData(color: Colors.black),
       ),
       home: SplashScreen(),
       debugShowCheckedModeBanner: false,

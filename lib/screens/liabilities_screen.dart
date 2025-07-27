@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../utils/validation.dart';
+import 'edit_transaction_screen.dart';
 
 class LiabilitiesScreen extends StatelessWidget {
   final List<Transaction> liabilities;
@@ -60,6 +61,19 @@ class LiabilitiesScreen extends StatelessWidget {
                           elevation: 3,
                           margin: EdgeInsets.symmetric(vertical: 8),
                           child: ListTile(
+                            onTap: () async {
+                              await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditTransactionScreen(
+                                    transaction: liability,
+                                    index: index,
+                                    boxType: 'liabilities',
+                                  ),
+                                ),
+                              );
+                              // No need to refresh as Hive will automatically update the UI
+                            },
                             leading: CircleAvatar(
                               backgroundColor: Color(0xFFEF9A9A),
                               child: Icon(
@@ -161,8 +175,6 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
   double _amount = 0.0;
   DateTime _selectedDate = DateTime.now();
   String _selectedTag = 'Bills';
-  DateTime? _dueDate;
-  bool _hasDueDate = false;
 
   final List<String> _liabilityTags = [
     'Bills',
@@ -208,7 +220,8 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
           date: _selectedDate,
           type: TransactionType.liability,
           tag: sanitizedTag,
-          dueDate: _hasDueDate ? _dueDate : null,
+          dueDate:
+              _selectedDate, // Use the main date as the due date for payment
         ),
       );
       Navigator.of(context).pop();
@@ -283,7 +296,7 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
               children: [
                 Expanded(
                   child: Text(
-                    'Date: ${_selectedDate.toLocal().toString().split(' ')[0]}',
+                    'Payment Due: ${_selectedDate.toLocal().toString().split(' ')[0]}',
                   ),
                 ),
                 TextButton(
@@ -298,51 +311,10 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
                       setState(() => _selectedDate = picked);
                     }
                   },
-                  child: Text('Select Date'),
+                  child: Text('Select Payment Date'),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Checkbox(
-                  value: _hasDueDate,
-                  onChanged: (value) {
-                    setState(() {
-                      _hasDueDate = value!;
-                      if (!_hasDueDate) _dueDate = null;
-                    });
-                  },
-                ),
-                Text('Has due date'),
-              ],
-            ),
-            if (_hasDueDate) ...[
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Due Date: ${_dueDate?.toLocal().toString().split(' ')[0] ?? 'Not set'}',
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _dueDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        setState(() => _dueDate = picked);
-                      }
-                    },
-                    child: Text('Select Due Date'),
-                  ),
-                ],
-              ),
-            ],
             SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(

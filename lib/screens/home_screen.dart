@@ -6,6 +6,7 @@ import '../models/expense.dart';
 import 'assets_screen.dart';
 import 'liabilities_screen.dart';
 import 'dashboard_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,7 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initHive();
-    _pageController = PageController(initialPage: 2);
+    // Start with a high initial page to allow circular scrolling in both directions
+    // Page 1000 corresponds to Dashboard (middle of 3 screens: 1000 % 3 = 1)
+    _pageController = PageController(
+      initialPage: 1000,
+    );
   }
 
   @override
@@ -61,7 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _addAsset(Transaction asset) {
-    assetsBox.add(asset);
+    // If it's a loan from the assets screen, it should be added to liabilities
+    if (asset.type == TransactionType.liability) {
+      liabilitiesBox.add(asset);
+    } else {
+      assetsBox.add(asset);
+    }
     setState(() {});
   }
 
@@ -108,63 +118,65 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _selectedIndex = index;
     });
+
+    // Handle Account screen separately (no PageView navigation)
+    if (index == 3) {
+      return; // Just update the state, Account screen is shown directly
+    }
+
+    // For circular navigation, calculate the target page based on current position
+    final currentPage = _pageController.page?.round() ?? 1000;
+    final currentScreenIndex = currentPage % 3;
+    
+    // Map logical indices to screen indices for circular navigation
+    int targetScreenIndex;
+    if (index == 0) {
+      targetScreenIndex = 0; // Liabilities
+    } else if (index == 2) {
+      targetScreenIndex = 1; // Dashboard
+    } else if (index == 1) {
+      targetScreenIndex = 2; // Assets
+    } else {
+      return;
+    }
+
+    // Calculate the closest page to navigate to
+    int targetPage = currentPage - currentScreenIndex + targetScreenIndex;
+    
     _pageController.animateToPage(
-      index,
+      targetPage,
       duration: Duration(milliseconds: 350),
       curve: Curves.easeInOut,
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(BuildContext context) {
     return AppBar(
-      automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       elevation: 2,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Hamburger menu
-          IconButton(
-            icon: Icon(Icons.menu, color: Colors.black),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-          // App title and net amount
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Finly',
-                  style: TextStyle(
-                    color: Color(0xFF1976D2),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  (_netAmount >= 0
-                      ? '+ ₹${_netAmount.toStringAsFixed(2)}'
-                      : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
-                  style: TextStyle(
-                    color: _netAmount >= 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Account button
-          IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.black),
-            onPressed: () {
-              setState(() {
-                _selectedIndex = 3;
-              });
-            },
-          ),
-        ],
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: Icon(Icons.menu, color: Colors.black),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
       ),
+      title: Text(
+        (_netAmount >= 0
+            ? '+ ₹${_netAmount.toStringAsFixed(2)}'
+            : '- ₹${_netAmount.abs().toStringAsFixed(2)}'),
+        style: TextStyle(
+          color: _netAmount >= 0 ? Colors.green : Colors.red,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: Icon(Icons.account_circle, color: Colors.black),
+          onPressed: () => _onNavTap(3),
+        ),
+      ],
     );
   }
 
@@ -273,29 +285,50 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!_hiveInitialized) {
       return Center(child: CircularProgressIndicator());
     }
-    return PageView(
+
+    // If Account screen is selected, show it directly
+    if (_selectedIndex == 3) {
+      return Center(child: Text('Account Screen'));
+    }
+
+    return PageView.builder(
       controller: _pageController,
       onPageChanged: (index) {
         setState(() {
-          _selectedIndex = index;
+          // Circular navigation with 3 screens (Liabilities, Dashboard, Assets)
+          // Map any index to the corresponding screen using modulo
+          final screenIndex = index % 3;
+          if (screenIndex == 0) {
+            _selectedIndex = 0; // Liabilities
+          } else if (screenIndex == 1) {
+            _selectedIndex = 2; // Dashboard
+          } else if (screenIndex == 2) {
+            _selectedIndex = 1; // Assets
+          }
         });
       },
-      children: [
-        LiabilitiesScreen(
-          liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
-          onAddLiability: _addLiability,
-        ),
-        AssetsScreen(
-          assets: assetsBox.values.cast<Transaction>().toList(),
-          onAddAsset: _addAsset,
-        ),
-        DashboardScreen(
-          assets: assetsBox.values.cast<Transaction>().toList(),
-          liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
-          onToggleCompleted: _toggleCompleted,
-        ),
-        Center(child: Text('Account Screen')),
-      ],
+      itemBuilder: (context, index) {
+        // Create infinite scrolling by repeating the 3 screens
+        final screenIndex = index % 3;
+        
+        if (screenIndex == 0) {
+          return LiabilitiesScreen(
+            liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
+            onAddLiability: _addLiability,
+          );
+        } else if (screenIndex == 1) {
+          return DashboardScreen(
+            assets: assetsBox.values.cast<Transaction>().toList(),
+            liabilities: liabilitiesBox.values.cast<Transaction>().toList(),
+            onToggleCompleted: _toggleCompleted,
+          );
+        } else {
+          return AssetsScreen(
+            assets: assetsBox.values.cast<Transaction>().toList(),
+            onAddAsset: _addAsset,
+          );
+        }
+      },
     );
   }
 
@@ -315,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: Icon(Icons.dashboard),
-
+              title: Text('Dashboard'),
               onTap: () {
                 _onNavTap(2);
                 Navigator.pop(context);
@@ -323,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: Icon(Icons.account_balance_wallet),
-
+              title: Text('Assets'),
               onTap: () {
                 _onNavTap(1);
                 Navigator.pop(context);
@@ -331,10 +364,24 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: Icon(Icons.money_off),
-
+              title: Text('Liabilities'),
               onTap: () {
                 _onNavTap(0);
                 Navigator.pop(context);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: Icon(Icons.history),
+              title: Text('History'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -350,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(60),
-        child: Builder(builder: (context) => _buildTopBar()),
+        child: Builder(builder: (context) => _buildTopBar(context)),
       ),
       body: _buildBody(),
       bottomNavigationBar: SizedBox(

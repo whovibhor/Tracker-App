@@ -23,23 +23,63 @@ class DashboardScreen extends StatelessWidget {
   }
 
   List<Transaction> get _incomingCredits {
-    return assets
-        .where((asset) => asset.dueDate != null && !asset.isCompleted)
-        .toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+    List<Transaction> incomingCredits = [];
+
+    // Add future-dated assets (money coming in)
+    incomingCredits.addAll(
+      assets
+          .where(
+            (asset) =>
+                asset.date.isAfter(DateTime.now()) ||
+                (asset.dueDate != null &&
+                    asset.dueDate!.isAfter(DateTime.now())),
+          )
+          .where((asset) => !asset.isCompleted),
+    );
+
+    // Add loans with due dates from liabilities (these are incoming credits to be repaid)
+    incomingCredits.addAll(
+      liabilities.where(
+        (liability) =>
+            liability.tag == 'Loan' &&
+            liability.dueDate != null &&
+            liability.dueDate!.isAfter(DateTime.now()) &&
+            !liability.isCompleted,
+      ),
+    );
+
+    // Sort by due date
+    incomingCredits.sort((a, b) {
+      final aDate = a.dueDate ?? a.date;
+      final bDate = b.dueDate ?? b.date;
+      return aDate.compareTo(bDate);
+    });
+
+    return incomingCredits;
   }
 
   List<Transaction> get _incomingBills {
     return liabilities
         .where(
-          (liability) => liability.dueDate != null && !liability.isCompleted,
+          (liability) =>
+              liability.tag !=
+                  'Loan' && // Exclude loans as they're handled in credits
+              liability.dueDate != null &&
+              !liability.isCompleted &&
+              liability.dueDate!.isAfter(
+                DateTime.now().subtract(Duration(days: 30)),
+              ), // Include overdue bills up to 30 days
         )
         .toList()
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
   }
 
   double get _totalIncomingCredits {
-    return _incomingCredits.fold(0, (sum, credit) => sum + credit.amount);
+    return _incomingCredits.fold(0, (sum, credit) {
+      // For loans, we're expecting to receive back, so it's positive
+      // For regular assets, it's also positive income
+      return sum + credit.amount;
+    });
   }
 
   double get _totalIncomingBills {
@@ -255,24 +295,28 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildBillCard(Transaction bill) {
+    final dueDate = bill.dueDate ?? bill.date;
+    final isOverdue = dueDate.isBefore(DateTime.now());
+    final daysUntilDue = dueDate.difference(DateTime.now()).inDays;
+
     return Container(
       width: 200,
+      height: 145, // Increased height to prevent overflow
       margin: EdgeInsets.only(right: 12),
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: bill.isOverdue ? Color(0xFFFFEBEE) : Color(0xFFFFF3E0),
+        color: isOverdue ? Color(0xFFFFEBEE) : Color(0xFFFFF3E0),
         child: Padding(
-          padding: EdgeInsets.all(12),
+          padding: EdgeInsets.all(6), // Further reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // Important for overflow prevention
             children: [
               Row(
                 children: [
                   Icon(
-                    bill.isOverdue ? Icons.warning : Icons.schedule,
-                    color: bill.isOverdue
-                        ? Color(0xFFD32F2F)
-                        : Color(0xFFFF9800),
+                    isOverdue ? Icons.warning : Icons.schedule,
+                    color: isOverdue ? Color(0xFFD32F2F) : Color(0xFFFF9800),
                     size: 16,
                   ),
                   SizedBox(width: 4),
@@ -288,13 +332,13 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 2), // Reduced spacing
               Text(
                 'Category: ${bill.tag}',
                 style: TextStyle(fontSize: 10, color: Color(0xFF8A8D9F)),
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 2), // Reduced spacing
               Text(
                 '₹${bill.amount.toStringAsFixed(2)}',
                 style: TextStyle(
@@ -303,25 +347,31 @@ class DashboardScreen extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 2), // Reduced spacing
               Text(
-                bill.isOverdue ? 'Overdue' : 'Due in ${bill.daysUntilDue} days',
+                isOverdue
+                    ? 'Overdue'
+                    : daysUntilDue <= 0
+                    ? 'Due today'
+                    : 'Due in $daysUntilDue days',
                 style: TextStyle(
                   fontSize: 10,
-                  color: bill.isOverdue ? Color(0xFFD32F2F) : Color(0xFFFF9800),
+                  color: isOverdue ? Color(0xFFD32F2F) : Color(0xFFFF9800),
                 ),
               ),
-              SizedBox(height: 4),
+              Spacer(), // Push button to bottom
               GestureDetector(
                 onTap: () => onToggleCompleted(bill),
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  width: double.infinity, // Full width
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: Color(0xFFD32F2F),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     'Mark Paid',
+                    textAlign: TextAlign.center, // Center the text
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -338,17 +388,26 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildCreditCard(Transaction credit) {
+    final isLoan = credit.tag == 'Loan';
+    final dueDate = credit.dueDate ?? credit.date;
+    final isOverdue = dueDate.isBefore(DateTime.now());
+    final daysUntilDue = dueDate.difference(DateTime.now()).inDays;
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: credit.isOverdue ? Color(0xFFE8F5E8) : Color(0xFFE3F2FD),
+      color: isOverdue
+          ? Color(0xFFFFEBEE)
+          : (isLoan ? Color(0xFFFFF3E0) : Color(0xFFE3F2FD)),
       margin: EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: credit.isOverdue
-              ? Color(0xFF4CAF50)
-              : Color(0xFF1976D2),
+          backgroundColor: isOverdue
+              ? Color(0xFFD32F2F)
+              : (isLoan ? Color(0xFFFF9800) : Color(0xFF1976D2)),
           child: Icon(
-            credit.isOverdue ? Icons.check_circle : Icons.schedule,
+            isLoan
+                ? Icons.account_balance
+                : (isOverdue ? Icons.warning : Icons.schedule),
             color: Colors.white,
             size: 20,
           ),
@@ -360,13 +419,15 @@ class DashboardScreen extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Category: ${credit.tag}'),
+            Text('Type: ${isLoan ? "Loan Repayment" : credit.tag}'),
             Text(
-              credit.isOverdue
+              isOverdue
                   ? 'Overdue'
-                  : 'Due in ${credit.daysUntilDue} days',
+                  : daysUntilDue <= 0
+                  ? 'Due today'
+                  : 'Due in $daysUntilDue days',
               style: TextStyle(
-                color: credit.isOverdue ? Color(0xFFD32F2F) : Color(0xFF1976D2),
+                color: isOverdue ? Color(0xFFD32F2F) : Color(0xFF1976D2),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -377,7 +438,7 @@ class DashboardScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '₹${credit.amount.toStringAsFixed(2)}',
+              '+ ₹${credit.amount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF388E3C),
@@ -393,7 +454,7 @@ class DashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Mark Received',
+                  isLoan ? 'Mark Repaid' : 'Mark Received',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 10,
