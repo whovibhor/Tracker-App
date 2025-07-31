@@ -11,6 +11,7 @@ void main() async {
   // Register Hive adapters
   Hive.registerAdapter(TransactionAdapter());
   Hive.registerAdapter(TransactionTypeAdapter());
+  Hive.registerAdapter(PaymentMethodAdapter());
   Hive.registerAdapter(UserAdapter());
 
   // Open Hive boxes

@@ -24,13 +24,14 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       tag: fields[4] as String,
       dueDate: fields[5] as DateTime?,
       isCompleted: fields[6] as bool,
+      paymentMethod: fields[7] as PaymentMethod?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.title)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(5)
       ..write(obj.dueDate)
       ..writeByte(6)
-      ..write(obj.isCompleted);
+      ..write(obj.isCompleted)
+      ..writeByte(7)
+      ..write(obj.paymentMethod);
   }
 
   @override
@@ -93,6 +96,60 @@ class TransactionTypeAdapter extends TypeAdapter<TransactionType> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is TransactionTypeAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class PaymentMethodAdapter extends TypeAdapter<PaymentMethod> {
+  @override
+  final int typeId = 4;
+
+  @override
+  PaymentMethod read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return PaymentMethod.cash;
+      case 1:
+        return PaymentMethod.creditCard;
+      case 2:
+        return PaymentMethod.debitCard;
+      case 3:
+        return PaymentMethod.upi;
+      case 4:
+        return PaymentMethod.bankTransfer;
+      default:
+        return PaymentMethod.cash;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, PaymentMethod obj) {
+    switch (obj) {
+      case PaymentMethod.cash:
+        writer.writeByte(0);
+        break;
+      case PaymentMethod.creditCard:
+        writer.writeByte(1);
+        break;
+      case PaymentMethod.debitCard:
+        writer.writeByte(2);
+        break;
+      case PaymentMethod.upi:
+        writer.writeByte(3);
+        break;
+      case PaymentMethod.bankTransfer:
+        writer.writeByte(4);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PaymentMethodAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

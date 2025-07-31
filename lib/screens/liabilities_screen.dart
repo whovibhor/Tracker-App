@@ -105,7 +105,7 @@ class _LiabilitiesScreenState extends State<LiabilitiesScreen> {
                   ),
                   SizedBox(width: 16),
                   Text(
-                    'Liabilities',
+                    'Expenses',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -173,7 +173,7 @@ class _LiabilitiesScreenState extends State<LiabilitiesScreen> {
             ),
             SizedBox(height: 24),
             Text(
-              'No Liabilities Yet',
+              'No Expenses Yet',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -287,6 +287,22 @@ class _LiabilitiesScreenState extends State<LiabilitiesScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
+                          if (liability.paymentMethod != null) ...[
+                            Text(
+                              ' • ',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                            Text(
+                              liability.paymentMethodDisplay,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       if (liability.dueDate != null) ...[
@@ -377,21 +393,34 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
   String _title = '';
   double _amount = 0.0;
   DateTime _selectedDate = DateTime.now();
-  String _selectedTag = 'Bills';
+  String _selectedTag = 'Food & Dining';
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.upi;
 
+  // Enhanced expense categories for better user experience
   final List<String> _liabilityTags = [
-    'Bills',
-    'House Rent',
-    'Food',
-    'To Return',
-    'Shopping',
-    'Medical',
-    'Travel',
-    'Education',
-    'Entertainment',
+    'Food & Dining',
     'Transportation',
-    'Utilities',
-    'Misc',
+    'Shopping',
+    'Bills & Utilities',
+    'Health & Fitness',
+    'Entertainment',
+    'Education',
+    'Travel',
+    'Family & Personal',
+    'House Rent',
+    'Groceries',
+    'Restaurants',
+    'Coffee & Tea',
+    'Fuel',
+    'Public Transport',
+    'Taxi/Uber',
+    'Clothing',
+    'Electronics',
+    'Movies',
+    'Games',
+    'Doctor Visits',
+    'Medicines',
+    'Other Expenses',
   ];
 
   void _submit() {
@@ -425,9 +454,25 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
           tag: sanitizedTag,
           dueDate:
               _selectedDate, // Use the main date as the due date for payment
+          paymentMethod: _selectedPaymentMethod,
         ),
       );
       Navigator.of(context).pop();
+    }
+  }
+
+  String _getPaymentMethodDisplay(PaymentMethod method) {
+    switch (method) {
+      case PaymentMethod.cash:
+        return '💵 Cash';
+      case PaymentMethod.creditCard:
+        return '💳 Credit Card';
+      case PaymentMethod.debitCard:
+        return '💳 Debit Card';
+      case PaymentMethod.upi:
+        return '📱 UPI';
+      case PaymentMethod.bankTransfer:
+        return '🏦 Bank Transfer';
     }
   }
 
@@ -475,7 +520,7 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
                     ),
                     SizedBox(width: 16),
                     Text(
-                      'Add Liability',
+                      'Add Expense',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -636,6 +681,55 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
                     });
                   },
                 ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<PaymentMethod>(
+                  style: TextStyle(color: Colors.white),
+                  dropdownColor: Color(0xFF1A1A1C),
+                  decoration: InputDecoration(
+                    labelText: 'Payment Method',
+                    labelStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Color(0xFFFF1744),
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Color(0xFF1A1A1C),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.payment_rounded,
+                      color: Color(0xFFFF1744),
+                    ),
+                  ),
+                  value: _selectedPaymentMethod,
+                  items: PaymentMethod.values.map((method) {
+                    return DropdownMenuItem(
+                      value: method,
+                      child: Text(
+                        _getPaymentMethodDisplay(method),
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedPaymentMethod = value!;
+                    });
+                  },
+                ),
                 SizedBox(height: 24),
                 Container(
                   decoration: BoxDecoration(
@@ -715,7 +809,7 @@ class _AddLiabilityFormState extends State<_AddLiabilityForm> {
                     ),
                     onPressed: _submit,
                     child: Text(
-                      'Add Liability',
+                      'Add Expense',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

@@ -6,6 +6,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:io';
 import '../models/expense.dart';
 import '../models/user.dart';
+import '../utils/dashboard_themes.dart';
+import '../widgets/quick_add_expense_widget.dart';
 import 'assets_screen.dart';
 import 'liabilities_screen.dart';
 import 'dashboard_screen.dart';
@@ -21,7 +23,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 2; // 0: Liabilities, 1: Assets, 2: Dashboard, 3: Account
+  int _selectedIndex = 2; // 0: Expenses, 1: Income, 2: Dashboard, 3: Account
   late Box assetsBox;
   late Box liabilitiesBox;
   late Box userBox;
@@ -40,9 +42,24 @@ class _HomeScreenState extends State<HomeScreen> {
       liabilitiesBox = Hive.box('liabilitiesBox');
       userBox = Hive.box('userBox');
 
-      // Load current user
+      // Load current user safely
       if (userBox.isNotEmpty) {
-        _currentUser = userBox.getAt(0) as User?;
+        try {
+          final userData = userBox.getAt(0);
+          if (userData is User) {
+            _currentUser = userData;
+          } else {
+            // Clear invalid data and set to null
+            userBox.clear();
+            _currentUser = null;
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Error loading user data: $e');
+          }
+          userBox.clear();
+          _currentUser = null;
+        }
       }
 
       setState(() {
@@ -58,9 +75,24 @@ class _HomeScreenState extends State<HomeScreen> {
         liabilitiesBox = await Hive.openBox('liabilitiesBox');
         userBox = await Hive.openBox('userBox');
 
-        // Load current user
+        // Load current user safely
         if (userBox.isNotEmpty) {
-          _currentUser = userBox.getAt(0) as User?;
+          try {
+            final userData = userBox.getAt(0);
+            if (userData is User) {
+              _currentUser = userData;
+            } else {
+              // Clear invalid data and set to null
+              userBox.clear();
+              _currentUser = null;
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('Error loading user data: $e');
+            }
+            userBox.clear();
+            _currentUser = null;
+          }
         }
 
         setState(() {
@@ -81,12 +113,21 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       assetsBox.add(asset);
     }
-    setState(() {});
+    _refreshAppState();
   }
 
   void _addLiability(Transaction liability) {
     liabilitiesBox.add(liability);
-    setState(() {});
+    _refreshAppState();
+  }
+
+  // Force refresh the entire app state to ensure data synchronization
+  void _refreshAppState() {
+    if (mounted) {
+      setState(() {
+        // This will trigger a rebuild of all widgets that depend on the data
+      });
+    }
   }
 
   void _toggleCompleted(Transaction transaction) {
@@ -105,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
         isCompleted: !transaction.isCompleted,
       );
       box.putAt(index, updatedTransaction);
-      setState(() {});
+      _refreshAppState();
     }
   }
 
@@ -162,6 +203,332 @@ class _HomeScreenState extends State<HomeScreen> {
             onUserUpdated: _updateUser,
             onLogout: _logout,
           ),
+        ),
+      );
+    }
+  }
+
+  void _showDashboardSettings(BuildContext context) {
+    // Get current theme
+    final currentThemeIndex = userBox.get(
+      DashboardThemeHelper.dashboardThemeKey,
+      defaultValue: 0,
+    );
+    DashboardLayoutTheme selectedTheme =
+        DashboardLayoutTheme.values[currentThemeIndex];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Color(0xFF1A1A1C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'Dashboard Layout',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Theme selection
+                  ...DashboardLayoutTheme.values.map((theme) {
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: selectedTheme == theme
+                            ? Color(0xFF00C853).withValues(alpha: 0.1)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: selectedTheme == theme
+                            ? Border.all(color: Color(0xFF00C853), width: 1)
+                            : Border.all(color: Color(0xFF333333), width: 1),
+                      ),
+                      child: RadioListTile<DashboardLayoutTheme>(
+                        title: Text(
+                          DashboardThemeHelper.getThemeName(theme),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: selectedTheme == theme
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: Text(
+                          DashboardThemeHelper.getThemeDescription(theme),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        value: theme,
+                        groupValue: selectedTheme,
+                        onChanged: (DashboardLayoutTheme? value) {
+                          if (value != null) {
+                            setDialogState(() {
+                              selectedTheme = value;
+                            });
+                          }
+                        },
+                        activeColor: Color(0xFF00C853),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    );
+                  }).toList(),
+
+                  // Divider
+                  SizedBox(height: 16),
+                  Divider(color: Color(0xFF333333)),
+                  SizedBox(height: 16),
+
+                  // Reset Data Section
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFF1744).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(0xFFFF1744), width: 1),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Color(0xFFFF1744),
+                              size: 20,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Reset All Data',
+                              style: TextStyle(
+                                color: Color(0xFFFF1744),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'This will permanently delete all your income, expenses, and user data. This action cannot be undone.',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showResetConfirmation(context),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Color(0xFFFF1744),
+                              side: BorderSide(color: Color(0xFFFF1744)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            icon: Icon(Icons.delete_forever, size: 18),
+                            label: Text('Reset App Data'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Save the selected theme
+                    userBox.put(
+                      DashboardThemeHelper.dashboardThemeKey,
+                      selectedTheme.index,
+                    );
+                    Navigator.of(context).pop();
+                    // Refresh the dashboard
+                    setState(() {});
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF00C853),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showResetConfirmation(BuildContext context) {
+    Navigator.of(context).pop(); // Close the settings dialog first
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Color(0xFF1A1A1C),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFFF1744),
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Reset All Data?',
+                style: TextStyle(color: Color(0xFFFF1744), fontSize: 18),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This action will permanently delete:',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12),
+              _buildResetItem('All income records'),
+              _buildResetItem('All expense records'),
+              _buildResetItem('User profile data'),
+              _buildResetItem('Dashboard preferences'),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF1744).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Color(0xFFFF1744), width: 1),
+                ),
+                child: Text(
+                  '⚠️ This action cannot be undone!\nThe app will restart with a fresh state.',
+                  style: TextStyle(
+                    color: Color(0xFFFF1744),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              onPressed: () => _performReset(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFFFF1744),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text('Reset Everything'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildResetItem(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(Icons.circle, color: Color(0xFFFF1744), size: 6),
+          SizedBox(width: 8),
+          Text(text, style: TextStyle(color: Colors.white70, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performReset(BuildContext context) async {
+    try {
+      // Show loading
+      Navigator.of(context).pop(); // Close confirmation dialog
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: Color(0xFF1A1A1C),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Color(0xFFFF1744)),
+              SizedBox(height: 16),
+              Text(
+                'Resetting app data...',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Clear all Hive boxes
+      await assetsBox.clear();
+      await liabilitiesBox.clear();
+      await userBox.clear();
+
+      // Reset current user
+      _currentUser = null;
+
+      // Wait a moment for visual feedback
+      await Future.delayed(Duration(seconds: 1));
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🎉 App reset successfully! Fresh start unlocked.'),
+          backgroundColor: Color(0xFF00C853),
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      // Refresh the entire app state
+      setState(() {
+        _selectedIndex = 2; // Reset to dashboard
+      });
+    } catch (e) {
+      // Close any open dialogs
+      Navigator.of(context).pop();
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error resetting app data: $e'),
+          backgroundColor: Color(0xFFFF1744),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -327,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: _buildNavItem(
                     icon: Icons.trending_down_outlined,
-                    label: 'Liabilities',
+                    label: 'Expenses',
                     selected: _selectedIndex == 0,
                     color: Color(0xFFFF1744),
                     onTap: () => _onNavTap(0),
@@ -345,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: _buildNavItem(
                     icon: Icons.trending_up_outlined,
-                    label: 'Assets',
+                    label: 'Income',
                     selected: _selectedIndex == 1,
                     color: Color(0xFF00C853),
                     onTap: () => _onNavTap(1),
@@ -371,9 +738,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Center(
         child: AnimatedContainer(
           duration: Duration(milliseconds: 200),
-          height: 50,
+          height: 60, // Increased height to prevent overflow
           width: 120,
-          padding: EdgeInsets.symmetric(vertical: 3.5, horizontal: 6),
+          padding: EdgeInsets.symmetric(
+            vertical: 6,
+            horizontal: 6,
+          ), // Adjusted padding
           decoration: BoxDecoration(
             color: selected ? color.withValues(alpha: 0.15) : Color(0xFF1A1A1C),
             borderRadius: BorderRadius.circular(24),
@@ -383,22 +753,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
+            mainAxisSize:
+                MainAxisSize.min, // Changed to min to prevent overflow
             children: [
               Icon(
                 selected ? _getFilledIcon(icon) : icon,
                 color: selected ? color : Color(0xFF999999),
-                size: 22,
+                size: 20, // Slightly reduced icon size
               ),
-              SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected ? color : Color(0xFF999999),
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                  fontSize: 12,
+              SizedBox(height: 3), // Reduced spacing
+              Flexible(
+                // Added Flexible to prevent text overflow
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? color : Color(0xFF999999),
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    fontSize: 11, // Slightly reduced font size
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -743,6 +1118,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       isSelected: false,
                     ),
+                    _buildDrawerItem(
+                      icon: Icons.settings_outlined,
+                      title: 'Dashboard Settings',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDashboardSettings(context);
+                      },
+                      isSelected: false,
+                    ),
                     Divider(color: Color(0xFF333333), thickness: 1, height: 32),
                     if (_currentUser != null)
                       _buildDrawerItem(
@@ -775,7 +1159,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _buildBody(),
       bottomNavigationBar: SizedBox(
-        height: 100,
+        height: 120, // Increased height to accommodate navigation
         child: SafeArea(
           top: false,
           left: false,
@@ -784,6 +1168,27 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(children: [_buildBottomNav()]),
         ),
       ),
+      floatingActionButton:
+          _selectedIndex ==
+              2 // Only show on Dashboard
+          ? FloatingActionButton(
+              onPressed: _showQuickAddExpense,
+              backgroundColor: const Color(0xFFFF1744),
+              foregroundColor: Colors.white,
+              elevation: 8,
+              child: const Icon(Icons.flash_on, size: 28),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  void _showQuickAddExpense() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => QuickAddExpenseWidget(onAddExpense: _addLiability),
     );
   }
 }

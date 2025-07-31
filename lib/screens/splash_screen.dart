@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(seconds: 2),
+      duration: Duration(milliseconds: 1500),
       vsync: this,
     );
 
@@ -42,8 +42,8 @@ class _SplashScreenState extends State<SplashScreen>
       // Migrate existing data if needed
       // await DataMigration.migrateData(); // Temporarily disabled
 
-      // Simulate loading time for better UX
-      await Future.delayed(Duration(seconds: 1));
+      // Reduced loading time for better performance
+      await Future.delayed(Duration(milliseconds: 500));
 
       if (mounted) {
         setState(() {
@@ -53,8 +53,8 @@ class _SplashScreenState extends State<SplashScreen>
         // Start animation
         _animationController.forward();
 
-        // Navigate to home screen after animation
-        await Future.delayed(Duration(seconds: 2));
+        // Navigate to home screen after shorter animation
+        await Future.delayed(Duration(milliseconds: 1500));
 
         if (mounted) {
           Navigator.of(context).pushReplacement(

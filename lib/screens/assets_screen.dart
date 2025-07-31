@@ -87,7 +87,7 @@ class _AssetsScreenState extends State<AssetsScreen> {
                 ),
                 SizedBox(width: 12),
                 Text(
-                  'Assets',
+                  'Income',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w400,
@@ -352,18 +352,22 @@ class _AddAssetFormState extends State<_AddAssetForm> {
   String _title = '';
   double _amount = 0.0;
   DateTime _selectedDate = DateTime.now();
-  String _selectedTag = 'Pocket Money';
+  String _selectedTag = 'Monthly Salary';
   DateTime? _dueDate;
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.bankTransfer;
 
+  // Enhanced income categories for better user experience
   final List<String> _assetTags = [
-    'Pocket Money',
-    'Loan', // This will be treated as incoming credit (liability)
-    'Profits',
-    'Random Money I Get',
-    'Salary',
-    'Investment Return',
-    'Gift',
-    'Other',
+    'Monthly Salary',
+    'Bonus',
+    'Freelance Work',
+    'Business Income',
+    'Investment Returns',
+    'Gift Money',
+    'Refund',
+    'Cashback',
+    'Rental Income',
+    'Other Income',
   ];
 
   void _submit() {
@@ -393,11 +397,10 @@ class _AddAssetFormState extends State<_AddAssetForm> {
           title: sanitizedTitle,
           amount: _amount,
           date: _selectedDate,
-          type: sanitizedTag == 'Loan'
-              ? TransactionType.liability
-              : TransactionType.asset,
+          type: TransactionType.asset,
           tag: sanitizedTag,
-          dueDate: sanitizedTag == 'Loan' ? _dueDate : null,
+          dueDate: null, // Income doesn't typically have due dates
+          paymentMethod: _selectedPaymentMethod,
         ),
       );
       Navigator.of(context).pop();
@@ -441,7 +444,7 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                     Text(
                       _selectedTag == 'Loan'
                           ? 'Add Incoming Credit'
-                          : 'Add Asset',
+                          : 'Add Income',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -697,7 +700,7 @@ class _AddAssetFormState extends State<_AddAssetForm> {
                     ),
                     onPressed: _submit,
                     child: Text(
-                      'Add Asset',
+                      'Add Income',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

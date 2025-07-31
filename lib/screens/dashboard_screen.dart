@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../models/expense.dart';
+import '../utils/dashboard_themes.dart';
 
 class DashboardScreen extends StatelessWidget {
   final List<Transaction> assets;
@@ -16,15 +18,6 @@ class DashboardScreen extends StatelessWidget {
     this.onNavigateToAssets,
     this.onNavigateToLiabilities,
   });
-
-  double get _netWorth {
-    double totalAssets = assets.fold(0, (sum, asset) => sum + asset.amount);
-    double totalLiabilities = liabilities.fold(
-      0,
-      (sum, liability) => sum + liability.amount,
-    );
-    return totalAssets - totalLiabilities;
-  }
 
   List<Transaction> get _incomingCredits {
     List<Transaction> incomingCredits = [];
@@ -90,6 +83,100 @@ class DashboardScreen extends StatelessWidget {
     return _incomingBills.fold(0, (sum, bill) => sum + bill.amount);
   }
 
+  // New financial health calculations
+  double get _monthlyIncome {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    return assets
+        .where(
+          (asset) =>
+              asset.date.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
+              asset.date.isBefore(endOfMonth.add(Duration(days: 1))) &&
+              asset.isCompleted,
+        )
+        .fold(0.0, (sum, asset) => sum + asset.amount);
+  }
+
+  double get _monthlyExpenses {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0);
+
+    return liabilities
+        .where(
+          (liability) =>
+              liability.date.isAfter(
+                startOfMonth.subtract(Duration(days: 1)),
+              ) &&
+              liability.date.isBefore(endOfMonth.add(Duration(days: 1))) &&
+              liability.isCompleted,
+        )
+        .fold(0.0, (sum, liability) => sum + liability.amount);
+  }
+
+  double get _monthlyNetFlow {
+    return _monthlyIncome - _monthlyExpenses;
+  }
+
+  double get _dailyAverageSpending {
+    final now = DateTime.now();
+    final sevenDaysAgo = now.subtract(Duration(days: 7));
+
+    final recentExpenses = liabilities
+        .where(
+          (liability) =>
+              liability.date.isAfter(sevenDaysAgo) &&
+              liability.date.isBefore(now.add(Duration(days: 1))) &&
+              liability.isCompleted,
+        )
+        .fold(0.0, (sum, liability) => sum + liability.amount);
+
+    return recentExpenses / 7;
+  }
+
+  double get _weeklyBudgetRemaining {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(Duration(days: 6));
+
+    final weeklyExpenses = liabilities
+        .where(
+          (liability) =>
+              liability.date.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
+              liability.date.isBefore(endOfWeek.add(Duration(days: 1))) &&
+              liability.isCompleted,
+        )
+        .fold(0.0, (sum, liability) => sum + liability.amount);
+
+    // Assuming a weekly budget of 20% of monthly income
+    final estimatedWeeklyBudget = (_monthlyIncome * 0.2) / 4;
+    return estimatedWeeklyBudget - weeklyExpenses;
+  }
+
+  int get _daysUntilNextPaycheck {
+    // For demo purposes, assuming paycheck every 30 days
+    // In real app, this would be configurable in user settings
+    final now = DateTime.now();
+    final nextPaycheck = DateTime(now.year, now.month + 1, 1);
+    return nextPaycheck.difference(now).inDays;
+  }
+
+  DashboardLayoutTheme get _currentTheme {
+    // Get theme from Hive storage or default to multiCard
+    try {
+      final box = Hive.box('userBox');
+      final themeIndex = box.get(
+        DashboardThemeHelper.dashboardThemeKey,
+        defaultValue: 0,
+      );
+      return DashboardLayoutTheme.values[themeIndex];
+    } catch (e) {
+      return DashboardLayoutTheme.multiCard;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,8 +193,8 @@ class DashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Net Worth Card - Reduced size
-              _buildNetWorthCard(),
+              // Dashboard Layout based on selected theme
+              _buildFinancialOverview(),
               SizedBox(height: 20),
 
               // Incoming Bills Section
@@ -123,107 +210,176 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNetWorthCard() {
+  Widget _buildFinancialOverview() {
+    switch (_currentTheme) {
+      case DashboardLayoutTheme.multiCard:
+        return _buildMultiCardLayout();
+      case DashboardLayoutTheme.comprehensive:
+        return _buildComprehensiveLayout();
+      case DashboardLayoutTheme.grid:
+        return _buildGridLayout();
+    }
+  }
+
+  // Theme 1: Multi-Card Layout
+  Widget _buildMultiCardLayout() {
+    return Column(
+      children: [
+        // Monthly Cash Flow Card
+        _buildMonthlyCashFlowCard(),
+        SizedBox(height: 16),
+
+        // Two smaller cards in a row
+        Row(
+          children: [
+            Expanded(child: _buildWeeklyBudgetCard()),
+            SizedBox(width: 12),
+            Expanded(child: _buildDailyAverageCard()),
+          ],
+        ),
+        SizedBox(height: 16),
+
+        // Paycheck countdown banner
+        _buildPaycheckCountdownBanner(),
+      ],
+    );
+  }
+
+  // Theme 2: Comprehensive Layout
+  Widget _buildComprehensiveLayout() {
+    return _buildComprehensiveCard();
+  }
+
+  // Theme 3: Grid Layout
+  Widget _buildGridLayout() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildMonthlyCashFlowGridCard()),
+            SizedBox(width: 12),
+            Expanded(child: _buildWeeklyBudgetGridCard()),
+          ],
+        ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: _buildDailyAverageGridCard()),
+            SizedBox(width: 12),
+            Expanded(child: _buildPaycheckGridCard()),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Multi-Card Layout Components
+  Widget _buildMonthlyCashFlowCard() {
+    final netFlow = _monthlyNetFlow;
     return Container(
-      padding: EdgeInsets.all(20), // Reduced from 24
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Color(0xFF1A1A1C),
-        borderRadius: BorderRadius.circular(16), // Slightly reduced from 20
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+          color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
           width: 1,
-          style: BorderStyle.solid,
         ),
         boxShadow: [
           BoxShadow(
-            color: (_netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
+            color: (netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
                 .withValues(alpha: 0.1),
-            blurRadius: 16, // Reduced from 20
-            offset: Offset(0, 6), // Reduced from 8
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 8, // Reduced from 10
-            offset: Offset(0, 3), // Reduced from 4
+            blurRadius: 16,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color:
-                      (_netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
-                          .withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10), // Reduced from 12
+                  color: (netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  _netWorth >= 0
-                      ? Icons.trending_up_rounded
-                      : Icons.trending_down_rounded,
-                  color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
-                  size: 20, // Reduced from 24
+                  Icons.trending_up_rounded,
+                  color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+                  size: 20,
                 ),
               ),
-              SizedBox(width: 10), // Reduced from 12
+              SizedBox(width: 10),
               Text(
-                'Net Worth',
+                'Monthly Cash Flow',
                 style: TextStyle(
-                  fontSize: 16, // Reduced from 18
+                  fontSize: 16,
                   fontWeight: FontWeight.w400,
                   color: Colors.white70,
-                  letterSpacing: 0.5,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12), // Reduced from 16
-          Text(
-            (_netWorth >= 0 ? '+ ₹' : '- ₹') +
-                _netWorth.abs().toStringAsFixed(2),
-            style: TextStyle(
-              fontSize: 28, // Reduced from 36
-              fontWeight: FontWeight.w300,
-              color: _netWorth >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
-              letterSpacing: 1.0,
-            ),
-          ),
-          SizedBox(height: 16), // Reduced from 20
-          Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Colors.white.withValues(alpha: 0.1),
-                  Colors.transparent,
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Income',
+                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                  Text(
+                    '₹${_monthlyIncome.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF00C853),
+                    ),
+                  ),
                 ],
               ),
-            ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Expenses',
+                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                  Text(
+                    '₹${_monthlyExpenses.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFFF1744),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          SizedBox(height: 16), // Reduced from 20
+          SizedBox(height: 12),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+          SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildSummaryItem(
-                'Assets',
-                assets.length,
-                Color(0xFF00C853),
-                Icons.account_balance_wallet_outlined,
+              Text(
+                'Net Flow: ',
+                style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
-              Container(
-                width: 1,
-                height: 32, // Reduced from 40
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
-              _buildSummaryItem(
-                'Liabilities',
-                liabilities.length,
-                Color(0xFFFF1744),
-                Icons.credit_card_outlined,
+              Text(
+                (netFlow >= 0 ? '+ ' : '- ') +
+                    '₹${netFlow.abs().toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+                ),
               ),
             ],
           ),
@@ -232,41 +388,405 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryItem(
-    String label,
-    int count,
-    Color color,
-    IconData icon,
-  ) {
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(6), // Reduced from 8
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8), // Reduced from 10
-          ),
-          child: Icon(icon, color: color, size: 18), // Reduced from 20
+  Widget _buildWeeklyBudgetCard() {
+    final remaining = _weeklyBudgetRemaining;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+          width: 1,
         ),
-        SizedBox(height: 6), // Reduced from 8
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 18, // Reduced from 22
-            fontWeight: FontWeight.w600,
-            color: color,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_view_week_outlined,
+                color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Weekly Budget',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
           ),
-        ),
-        SizedBox(height: 2), // Reduced from 4
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11, // Reduced from 13
-            color: Colors.white54,
-            fontWeight: FontWeight.w400,
+          SizedBox(height: 8),
+          Text(
+            '₹${remaining.abs().toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+            ),
           ),
+          Text(
+            remaining >= 0 ? 'remaining' : 'over budget',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyAverageCard() {
+    final average = _dailyAverageSpending;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFF6C63FF), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics_outlined,
+                color: Color(0xFF6C63FF),
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Daily Average',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            '₹${average.toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6C63FF),
+            ),
+          ),
+          Text(
+            '(last 7 days)',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaycheckCountdownBanner() {
+    final days = _daysUntilNextPaycheck;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFFFF6F00), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Color(0xFFFF6F00).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.payments_outlined,
+              color: Color(0xFFFF6F00),
+              size: 18,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Next Paycheck',
+                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+                Text(
+                  '$days days remaining',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFFF6F00),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Comprehensive Layout
+  Widget _buildComprehensiveCard() {
+    final netFlow = _monthlyNetFlow;
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+          width: 1,
         ),
-      ],
+        boxShadow: [
+          BoxShadow(
+            color: (netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744))
+                .withValues(alpha: 0.1),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Financial Health',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Monthly Flow:',
+                style: TextStyle(fontSize: 14, color: Colors.white70),
+              ),
+              Text(
+                (netFlow >= 0 ? '+₹' : '-₹') +
+                    '${netFlow.abs().toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Income ₹${_monthlyIncome.toStringAsFixed(0)} | Expenses ₹${_monthlyExpenses.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 12, color: Colors.white54),
+          ),
+          SizedBox(height: 16),
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Week Budget: ₹${_weeklyBudgetRemaining.abs().toStringAsFixed(0)} ${_weeklyBudgetRemaining >= 0 ? 'left' : 'over'}',
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Daily Avg: ₹${_dailyAverageSpending.toStringAsFixed(0)} | Next Pay: ${_daysUntilNextPaycheck}d',
+                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Grid Layout Components
+  Widget _buildMonthlyCashFlowGridCard() {
+    final netFlow = _monthlyNetFlow;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                netFlow >= 0 ? Icons.trending_up : Icons.trending_down,
+                color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Monthly',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            (netFlow >= 0 ? '+₹' : '-₹') +
+                '${netFlow.abs().toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: netFlow >= 0 ? Color(0xFF00C853) : Color(0xFFFF1744),
+            ),
+          ),
+          Text(
+            'Net Flow',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyBudgetGridCard() {
+    final remaining = _weeklyBudgetRemaining;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_view_week_outlined,
+                color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Weekly Budget',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            '₹${remaining.abs().toStringAsFixed(0)} ${remaining >= 0 ? 'left' : 'over'}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: remaining >= 0 ? Color(0xFF00C853) : Color(0xFFFF6F00),
+            ),
+          ),
+          Text(
+            '5 days left',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyAverageGridCard() {
+    final average = _dailyAverageSpending;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFF6C63FF), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics_outlined,
+                color: Color(0xFF6C63FF),
+                size: 16,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'Daily Avg',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            '₹${average.toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6C63FF),
+            ),
+          ),
+          Text(
+            '(7d trend)',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaycheckGridCard() {
+    final days = _daysUntilNextPaycheck;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF1A1A1C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFFFF6F00), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.payments_outlined, color: Color(0xFFFF6F00), size: 16),
+              SizedBox(width: 6),
+              Text(
+                'Next Paycheck',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            '$days days',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFFFF6F00),
+            ),
+          ),
+          Text(
+            '(₹45,000)',
+            style: TextStyle(fontSize: 10, color: Colors.white54),
+          ),
+        ],
+      ),
     );
   }
 
